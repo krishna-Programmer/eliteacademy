@@ -2,29 +2,40 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Student Exam Manager v2</title>
+<title>Student Exam Manager v2.3</title>
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
 <style>
 body{font-family:Arial;margin:0;background:#f5f6fa}
-.container{max-width:1100px;margin:auto;padding:15px}
-.card{background:#fff;padding:15px;border-radius:10px;box-shadow:0 2px 6px rgba(0,0,0,0.1);margin-bottom:10px}
+.container{max-width:1100px;margin:auto;padding:10px}
+.card{background:#fff;padding:12px;border-radius:10px;box-shadow:0 2px 6px rgba(0,0,0,0.1);margin-bottom:10px}
+
 h1,h3{text-align:center;margin:5px}
+.header h1[contenteditable]{outline:none;font-size:22px}
+
 .controls{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
 button{padding:6px 10px;border:none;border-radius:6px;background:#3498db;color:#fff;cursor:pointer}
-button:hover{background:#2980b9}
+
 input,select{padding:5px;border-radius:6px;border:1px solid #ccc}
+
+.table-wrapper{overflow-x:auto}
 table{border-collapse:collapse;width:100%;font-size:12px;background:#fff}
 th,td{border:1px solid #ccc;padding:5px;text-align:center}
 th{background:#eee}
-.sticky{position:sticky;left:0;background:#fff}
-#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:8px 15px;border-radius:6px;display:none}
+
+@media print{
+  body{zoom:0.85}
+  .controls,#colPanel{display:none}
+  .table-wrapper{overflow:visible}
+}
 </style>
 </head>
+
 <body>
 <div class="container">
 
-<div class="card">
-<h1><input id="title" value="ELITE MEDICAL ACADEMY : KHAMMAM"></h1>
+<div class="card header">
+<h1 contenteditable="true">ELITE MEDICAL ACADEMY : KHAMMAM</h1>
 <h3>
 <input id="examName" value="LONGTERM CT - 5">
  | DATE: <span id="date"></span>
@@ -32,53 +43,45 @@ th{background:#eee}
 </h3>
 </div>
 
-<div class="card controls">
+<div class="card controls" id="controls">
 <select id="examSelect" onchange="loadExam()"></select>
-<button onclick="newExam()">New Exam</button>
-<button onclick="deleteExam()">Delete Exam</button>
-
-<input type="file" id="csvFile">
-<button onclick="loadCSV()">Load Students (CSV)</button>
-
-<button onclick="addStudent()">Add Student</button>
+<button onclick="newExam()">New</button>
+<button onclick="deleteExam()">Delete</button>
+<button onclick="triggerCSV()">Load Students</button>
+<input type="file" id="csvFile" accept=".csv" style="display:none">
+<button onclick="addStudent()">Add</button>
 <button onclick="exportExcel()">Excel</button>
 <button onclick="exportCSV()">CSV</button>
 <button onclick="printReport()">PDF</button>
-
 <button onclick="backupData()">Backup</button>
-<input type="file" id="restoreFile" onchange="restoreData(this.files[0])">
-
+<button onclick="triggerRestore()">Restore</button>
+<input type="file" id="restoreFile" accept=".json" style="display:none">
 <button onclick="toggleCols()">⚙️</button>
+<button onclick="toggleMode()" id="modeBtn">Switch to Edit</button>
 </div>
 
 <div id="colPanel" class="card" style="display:none">
 <label><input type="checkbox" checked data-col="bot"> Botany</label>
+<label><input type="checkbox" checked data-col="botRank"> Botany Rank</label>
 <label><input type="checkbox" checked data-col="zoo"> Zoology</label>
+<label><input type="checkbox" checked data-col="zooRank"> Zoology Rank</label>
 <label><input type="checkbox" checked data-col="phy"> Physics</label>
+<label><input type="checkbox" checked data-col="phyRank"> Physics Rank</label>
 <label><input type="checkbox" checked data-col="che"> Chemistry</label>
+<label><input type="checkbox" checked data-col="cheRank"> Chemistry Rank</label>
+<label><input type="checkbox" checked data-col="total"> Total</label>
+<label><input type="checkbox" checked data-col="totalRank"> Total Rank</label>
+<label><input type="checkbox" checked data-col="delete"> Delete</label>
 </div>
 
-<div class="card" style="overflow:auto">
+<div class="card table-wrapper">
 <table>
-<thead>
-<tr>
-<th class="sticky">Roll</th>
-<th class="sticky">Name</th>
-<th>Botany</th><th>R</th>
-<th>Zoology</th><th>R</th>
-<th>Physics</th><th>R</th>
-<th>Chemistry</th><th>R</th>
-<th>Total</th><th>R</th>
-<th>❌</th>
-</tr>
-</thead>
+<thead id="thead"></thead>
 <tbody id="tbody"></tbody>
 </table>
 </div>
 
 </div>
-
-<div id="toast"></div>
 
 <script>
 document.getElementById("date").innerText=new Date().toLocaleDateString();
@@ -90,80 +93,172 @@ set(d){localStorage.setItem("exams",JSON.stringify(d))}
 
 let exams=Store.get();
 let current="";
-let visible={bot:true,zoo:true,phy:true,che:true};
+let editMode=false;
 
-function toast(msg){
-let t=document.getElementById("toast");
-t.innerText=msg;t.style.display="block";
-setTimeout(()=>t.style.display="none",2000);
+let visible={bot:true,zoo:true,phy:true,che:true,botRank:true,zooRank:true,phyRank:true,cheRank:true,total:true,totalRank:true,delete:true};
+
+function toggleMode(){
+editMode=!editMode;
+document.getElementById("modeBtn").innerText=editMode?"Switch to View":"Switch to Edit";
+document.getElementById("controls").style.display=editMode?"flex":"none";
+render();
 }
 
 function init(){
 if(!Object.keys(exams).length) exams["Exam 1"]=[];
 current=Object.keys(exams)[0];
-renderExamList();loadExam();
+renderExamList();
+loadExam();
 }
 
 function renderExamList(){
-let s=document.getElementById("examSelect");s.innerHTML="";
-Object.keys(exams).forEach(e=>s.innerHTML+=`<option ${e===current?"selected":""}>${e}</option>`);
+let s=document.getElementById("examSelect");
+s.innerHTML="";
+Object.keys(exams).forEach(e=>{
+s.innerHTML+=`<option ${e===current?"selected":""}>${e}</option>`;
+});
 }
 
-function loadExam(){current=document.getElementById("examSelect").value;render()}
+function loadExam(){
+current=document.getElementById("examSelect").value;
+render();
+}
 
 function newExam(){
-let n=prompt("Exam name?");if(!n)return;
-exams[n]=[];current=n;Store.set(exams);renderExamList();render();
+let n=prompt("Exam name?");
+if(!n)return;
+exams[n]=[];
+current=n;
+Store.set(exams);
+renderExamList();
+render();
 }
 
 function deleteExam(){
 if(!confirm("Delete exam?"))return;
-delete exams[current];Store.set(exams);init();
+delete exams[current];
+Store.set(exams);
+init();
 }
 
-function students(){return exams[current]}
+function students(){return exams[current];}
 
-function addStudent(){students().push({roll:"",name:"",bot:0,zoo:0,phy:0,che:0,ranks:{},total:0,totalRank:0});calc()}
+function addStudent(){
+students().push({roll:"",name:"",bot:0,zoo:0,phy:0,che:0,ranks:{},total:0,totalRank:0});
+calc();
+}
 
-function upd(i,f,v){students()[i][f]=(f=="roll"||f=="name")?v:+v;calc()}
+function upd(i,f,v){
+students()[i][f]=(f==="roll"||f==="name")?v:+v;
+calc();
+}
 
-function del(i){students().splice(i,1);render();Store.set(exams)}
+function del(i){
+students().splice(i,1);
+render();
+Store.set(exams);
+}
 
 function calc(){
 students().forEach(s=>s.total=s.bot+s.zoo+s.phy+s.che);
+
 ["bot","zoo","phy","che"].forEach(f=>{
 let s=[...students()].sort((a,b)=>b[f]-a[f]);
-s.forEach((x,i)=>x.ranks[f]=(i>0&&s[i][f]==s[i-1][f])?s[i-1].ranks[f]:i+1);
+s.forEach((x,i)=>{
+x.ranks[f]=(i>0&&s[i][f]==s[i-1][f])?s[i-1].ranks[f]:i+1;
 });
+});
+
 let s=[...students()].sort((a,b)=>b.total-a.total);
-s.forEach((x,i)=>x.totalRank=(i>0&&s[i].total==s[i-1].total)?s[i-1].totalRank:i+1);
-render();Store.set(exams);
+s.forEach((x,i)=>{
+x.totalRank=(i>0&&s[i].total==s[i-1].total)?s[i-1].totalRank:i+1;
+});
+
+render();
+Store.set(exams);
+}
+
+function renderHeader(){
+let h="<tr><th>Roll</th><th>Name</th>";
+
+if(visible.bot) h+="<th>Botany</th>";
+if(visible.botRank) h+="<th>Rank</th>";
+
+if(visible.zoo) h+="<th>Zoology</th>";
+if(visible.zooRank) h+="<th>Rank</th>";
+
+if(visible.phy) h+="<th>Physics</th>";
+if(visible.phyRank) h+="<th>Rank</th>";
+
+if(visible.che) h+="<th>Chemistry</th>";
+if(visible.cheRank) h+="<th>Rank</th>";
+
+if(visible.total) h+="<th>Total</th>";
+if(visible.totalRank) h+="<th>Rank</th>";
+
+if(editMode && visible.delete) h+="<th>Delete</th>";
+
+h+="</tr>";
+document.getElementById("thead").innerHTML=h;
 }
 
 function render(){
-let t=document.getElementById("tbody");t.innerHTML="";
+renderHeader();
+let t=document.getElementById("tbody");
+t.innerHTML="";
+
 students().forEach((s,i)=>{
-t.innerHTML+=`
-<tr>
-<td><input value="${s.roll}" onchange="upd(${i},'roll',this.value)"></td>
-<td><input value="${s.name}" onchange="upd(${i},'name',this.value)"></td>
-${visible.bot?`<td><input type="number" value="${s.bot}" onchange="upd(${i},'bot',this.value)"></td><td>${s.ranks.bot||""}</td>`:""}
-${visible.zoo?`<td><input type="number" value="${s.zoo}" onchange="upd(${i},'zoo',this.value)"></td><td>${s.ranks.zoo||""}</td>`:""}
-${visible.phy?`<td><input type="number" value="${s.phy}" onchange="upd(${i},'phy',this.value)"></td><td>${s.ranks.phy||""}</td>`:""}
-${visible.che?`<td><input type="number" value="${s.che}" onchange="upd(${i},'che',this.value)"></td><td>${s.ranks.che||""}</td>`:""}
-<td>${s.total}</td><td>${s.totalRank||""}</td>
-<td><button onclick="del(${i})">X</button></td>
-</tr>`;
+let row="<tr>";
+
+row+=`<td>${editMode?`<input value="${s.roll}" onchange="upd(${i},'roll',this.value)">`:s.roll}</td>`;
+row+=`<td>${editMode?`<input value="${s.name}" onchange="upd(${i},'name',this.value)">`:s.name}</td>`;
+
+if(visible.bot) row+=`<td>${editMode?`<input type="number" value="${s.bot}" onchange="upd(${i},'bot',this.value)">`:s.bot}</td>`;
+if(visible.botRank) row+=`<td>${s.ranks.bot||""}</td>`;
+
+if(visible.zoo) row+=`<td>${editMode?`<input type="number" value="${s.zoo}" onchange="upd(${i},'zoo',this.value)">`:s.zoo}</td>`;
+if(visible.zooRank) row+=`<td>${s.ranks.zoo||""}</td>`;
+
+if(visible.phy) row+=`<td>${editMode?`<input type="number" value="${s.phy}" onchange="upd(${i},'phy',this.value)">`:s.phy}</td>`;
+if(visible.phyRank) row+=`<td>${s.ranks.phy||""}</td>`;
+
+if(visible.che) row+=`<td>${editMode?`<input type="number" value="${s.che}" onchange="upd(${i},'che',this.value)">`:s.che}</td>`;
+if(visible.cheRank) row+=`<td>${s.ranks.che||""}</td>`;
+
+if(visible.total) row+=`<td>${s.total}</td>`;
+if(visible.totalRank) row+=`<td>${s.totalRank||""}</td>`;
+
+if(editMode && visible.delete) row+=`<td><button onclick="del(${i})">X</button></td>`;
+
+row+="</tr>";
+t.innerHTML+=row;
 });
 }
 
+function toggleCols(){
+let p=document.getElementById("colPanel");
+p.style.display=p.style.display==="none"?"block":"none";
+
+document.querySelectorAll("#colPanel input").forEach(i=>{
+i.onchange=()=>{
+visible[i.dataset.col]=i.checked;
+render();
+};
+});
+}
+
+function triggerCSV(){document.getElementById("csvFile").click();}
+function triggerRestore(){document.getElementById("restoreFile").click();}
+
 function loadCSV(){
-let f=document.getElementById("csvFile").files[0];if(!f)return;
-if(!confirm("Replace existing data? Cancel = append")){}
+let f=document.getElementById("csvFile").files[0];
+if(!f)return;
+
 let r=new FileReader();
 r.onload=e=>{
 let lines=e.target.result.split("\n").filter(l=>l.trim());
 let h=lines[0].toLowerCase().split(",");
+
 let map={
 roll:h.findIndex(x=>x.includes("roll")),
 name:h.findIndex(x=>x.includes("name")),
@@ -172,60 +267,116 @@ zoo:h.findIndex(x=>x.includes("zoo")),
 phy:h.findIndex(x=>x.includes("phy")),
 che:h.findIndex(x=>x.includes("che"))
 };
-if(confirm("Replace?")) exams[current]=[];
+
+if(confirm("Replace existing data?")) exams[current]=[];
+
 for(let i=1;i<lines.length;i++){
 let p=lines[i].split(",");
-students().push({roll:p[map.roll],name:p[map.name],bot:+p[map.bot]||0,zoo:+p[map.zoo]||0,phy:+p[map.phy]||0,che:+p[map.che]||0,ranks:{},total:0,totalRank:0});
+students().push({
+roll:p[map.roll],
+name:p[map.name],
+bot:+p[map.bot]||0,
+zoo:+p[map.zoo]||0,
+phy:+p[map.phy]||0,
+che:+p[map.che]||0,
+ranks:{},total:0,totalRank:0
+});
 }
-calc();toast("CSV Loaded");
+
+calc();
 };
 r.readAsText(f);
 }
 
+function getHeaders(){
+let h=["Roll","Name"];
+
+if(visible.bot) h.push("Botany");
+if(visible.botRank) h.push("Botany Rank");
+
+if(visible.zoo) h.push("Zoology");
+if(visible.zooRank) h.push("Zoology Rank");
+
+if(visible.phy) h.push("Physics");
+if(visible.phyRank) h.push("Physics Rank");
+
+if(visible.che) h.push("Chemistry");
+if(visible.cheRank) h.push("Chemistry Rank");
+
+if(visible.total) h.push("Total");
+if(visible.totalRank) h.push("Total Rank");
+
+return h;
+}
+
+function getRow(s){
+let r=[s.roll,s.name];
+
+if(visible.bot) r.push(s.bot);
+if(visible.botRank) r.push(s.ranks.bot||"");
+
+if(visible.zoo) r.push(s.zoo);
+if(visible.zooRank) r.push(s.ranks.zoo||"");
+
+if(visible.phy) r.push(s.phy);
+if(visible.phyRank) r.push(s.ranks.phy||"");
+
+if(visible.che) r.push(s.che);
+if(visible.cheRank) r.push(s.ranks.che||"");
+
+if(visible.total) r.push(s.total);
+if(visible.totalRank) r.push(s.totalRank||"");
+
+return r;
+}
+
 function exportCSV(){
-let rows=[["Roll","Name","Bot","Zoo","Phy","Che","Total"]];
-students().forEach(s=>rows.push([s.roll,s.name,s.bot,s.zoo,s.phy,s.che,s.total]));
+let rows=[getHeaders()];
+students().forEach(s=>rows.push(getRow(s)));
+
 let csv=rows.map(r=>r.join(",")).join("\n");
-let a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv]));a.download=current+".csv";a.click();
+let a=document.createElement("a");
+a.href=URL.createObjectURL(new Blob([csv]));
+a.download=current+".csv";
+a.click();
 }
 
 function exportExcel(){
-let rows=[["Roll","Name","Bot","Zoo","Phy","Che","Total"]];
-students().forEach(s=>rows.push([s.roll,s.name,s.bot,s.zoo,s.phy,s.che,s.total]));
-let ws=XLSX.utils.aoa_to_sheet(rows);let wb=XLSX.utils.book_new();
+let rows=[getHeaders()];
+students().forEach(s=>rows.push(getRow(s)));
+
+let ws=XLSX.utils.aoa_to_sheet(rows);
+let wb=XLSX.utils.book_new();
 XLSX.utils.book_append_sheet(wb,ws,current);
 XLSX.writeFile(wb,current+".xlsx");
 }
 
-function printReport(){window.print()}
+function printReport(){window.print();}
 
 function backupData(){
 let data=localStorage.getItem("exams");
 let a=document.createElement("a");
 a.href=URL.createObjectURL(new Blob([data]));
-a.download="backup.json";a.click();toast("Backup saved");
+a.download="backup.json";
+a.click();
 }
 
 function restoreData(file){
 let r=new FileReader();
 r.onload=e=>{
 let data=JSON.parse(e.target.result);
-if(confirm("Replace existing data?")) localStorage.setItem("exams",JSON.stringify(data));
-else{
-let ex=Store.get();Object.assign(ex,data);
+
+if(confirm("Replace existing data?")){
+localStorage.setItem("exams",JSON.stringify(data));
+}else{
+let ex=Store.get();
+Object.assign(ex,data);
 localStorage.setItem("exams",JSON.stringify(ex));
 }
+
 location.reload();
 };
 r.readAsText(file);
-}
-
-function toggleCols(){
-let p=document.getElementById("colPanel");
-p.style.display=p.style.display=="none"?"block":"none";
-document.querySelectorAll("#colPanel input").forEach(i=>{
-i.onchange=()=>{visible[i.dataset.col]=i.checked;render()}
-});
 }
 
 init();
