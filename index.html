@@ -244,6 +244,34 @@ td:nth-child(1), td:nth-child(2), td:nth-child(3) { text-align: left; }
 }
 
 /* ============================================================
+   SORTABLE HEADERS
+   ============================================================ */
+
+/* Rank columns that are clickable for sorting */
+th.sortable {
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  transition: background 0.15s;
+}
+th.sortable:hover { background: #e2e5f0; }
+
+/* Sort indicator arrow appended after header text */
+th.sortable::after {
+  content: " ↕";
+  font-size: 10px;
+  opacity: 0.35;
+}
+th.sort-asc::after  { content: " ▲"; opacity: 1; color: var(--accent); }
+th.sort-desc::after { content: " ▼"; opacity: 1; color: var(--accent); }
+
+/* Active sort column header gets a subtle accent underline */
+th.sort-asc, th.sort-desc {
+  color: var(--accent);
+  background: #eef2ff;
+}
+
+/* ============================================================
    PRINT STYLES
    ============================================================ */
 @media print {
@@ -521,12 +549,21 @@ const State = (() => {
     del: true
   };
 
+  /**
+   * Current sort state.
+   *   field  — which field to sort by: "bot","zoo","phy","che","total", or null (original order)
+   *   dir    — "asc" | "desc"
+   * Clicking the same rank column toggles asc ↔ desc.
+   * Clicking a different column resets to desc (highest rank first).
+   */
+  const sort = { field: null, dir: "desc" };
+
   /** Shortcut to get the student array for the active exam. */
   function currentStudents() {
     return exams[current] || [];
   }
 
-  return { exams, current, editMode, visible, currentStudents,
+  return { exams, current, editMode, visible, sort, currentStudents,
            // Setters that also update the let bindings
            setCurrent(v)  { current  = v; State.current  = v; },
            setEditMode(v) { editMode = v; State.editMode = v; },
@@ -698,21 +735,42 @@ const UI = (() => {
     _renderRows();
   }
 
-  /** Build the <thead> row using the current visible config. */
+  /**
+   * Build the <thead> row using the current visible config.
+   * Rank columns (B.Rank, Z.Rank, P.Rank, C.Rank, Rank) are
+   * clickable to sort the table. Active sort column is highlighted.
+   */
   function _renderHeader() {
     const v = State.visible;
+    const s = State.sort;
+
+    /**
+     * Generate a sortable <th> for a rank column.
+     * @param {string} field   — data field to sort by (e.g. "bot", "total")
+     * @param {string} label   — display text (e.g. "B.Rank")
+     */
+    function _sortTh(field, label) {
+      const isCurrent = s.field === field;
+      const cls = isCurrent ? `sortable sort-${s.dir}` : "sortable";
+      return `<th class="${cls}" onclick="UI.sortBy('${field}')">${label}</th>`;
+    }
+
     let html = "<tr><th>#</th><th>ID</th><th>Name</th>";
 
     if (v.bot)      html += "<th>Botany</th>";
-    if (v.botRank)  html += "<th>B.Rank</th>";
+    if (v.botRank)  html += _sortTh("bot",   "B.Rank");
+
     if (v.zoo)      html += "<th>Zoology</th>";
-    if (v.zooRank)  html += "<th>Z.Rank</th>";
+    if (v.zooRank)  html += _sortTh("zoo",   "Z.Rank");
+
     if (v.phy)      html += "<th>Physics</th>";
-    if (v.phyRank)  html += "<th>P.Rank</th>";
+    if (v.phyRank)  html += _sortTh("phy",   "P.Rank");
+
     if (v.che)      html += "<th>Chemistry</th>";
-    if (v.cheRank)  html += "<th>C.Rank</th>";
+    if (v.cheRank)  html += _sortTh("che",   "C.Rank");
+
     if (v.total)    html += "<th>Total</th>";
-    if (v.totalRank)html += "<th>Rank</th>";
+    if (v.totalRank)html += _sortTh("total", "Rank");
 
     if (State.editMode && v.del) html += "<th>Del</th>";
 
@@ -728,25 +786,57 @@ const UI = (() => {
     return `<td class="${cls}">${rankVal || ""}</td>`;
   }
 
-  /** Build all <tbody> rows from the current exam's student list. */
+  /**
+   * Build all <tbody> rows.
+   *
+   * Display order respects the current sort state (State.sort).
+   * NOTE: sorting is VIEW-ONLY — the underlying array in State.exams
+   * is never reordered, so ranks and edit-mode indices stay stable.
+   * We map each displayed student back to its true array index so
+   * that updateStudent / deleteStudent still work correctly.
+   */
   function _renderRows() {
     const v    = State.visible;
     const edit = State.editMode;
-    const rows = State.currentStudents().map((s, i) => {
-      let row = `<tr>
-        <td>${i + 1}</td>
-        <td>${edit ? `<input class="wide" value="${_esc(s.id)}"
-              onchange="UI.updateStudent(${i},'id',this.value)">` : _esc(s.id)}</td>
-        <td>${edit ? `<input class="wide" value="${_esc(s.name)}"
-              onchange="UI.updateStudent(${i},'name',this.value)">` : _esc(s.name)}</td>`;
+    const src  = State.currentStudents();
 
-      // Subject columns
+    // Build an array of [originalIndex, student] pairs, then sort for display
+    let display = src.map((s, i) => [i, s]);
+
+    if (State.sort.field) {
+      const field = State.sort.field;
+      const asc   = State.sort.dir === "asc";
+
+      display.sort(([, a], [, b]) => {
+        // Sort by the rank value (lower rank number = better performance)
+        // Use score as secondary sort for stability within same rank
+        const rankA = field === "total" ? (a.totalRank || 9999) : (a.ranks[field] || 9999);
+        const rankB = field === "total" ? (b.totalRank || 9999) : (b.ranks[field] || 9999);
+
+        if (rankA !== rankB) return asc ? rankA - rankB : rankB - rankA;
+
+        // Tie-break: sort by score descending for visual clarity
+        const scoreA = field === "total" ? a.total : a[field];
+        const scoreB = field === "total" ? b.total : b[field];
+        return scoreB - scoreA;
+      });
+    }
+
+    const rows = display.map(([origIdx, s], displayPos) => {
+      let row = `<tr>
+        <td>${displayPos + 1}</td>
+        <td>${edit ? `<input class="wide" value="${_esc(s.id)}"
+              onchange="UI.updateStudent(${origIdx},'id',this.value)">` : _esc(s.id)}</td>
+        <td>${edit ? `<input class="wide" value="${_esc(s.name)}"
+              onchange="UI.updateStudent(${origIdx},'name',this.value)">` : _esc(s.name)}</td>`;
+
+      // Subject columns — pass origIdx to updateStudent so edits target the right student
       [["bot","botRank"],["zoo","zooRank"],["phy","phyRank"],["che","cheRank"]]
         .forEach(([subj, rankKey]) => {
           if (v[subj])
             row += `<td>${edit
               ? `<input type="number" value="${s[subj]}"
-                   onchange="UI.updateStudent(${i},'${subj}',this.value)">`
+                   onchange="UI.updateStudent(${origIdx},'${subj}',this.value)">`
               : s[subj]}</td>`;
           if (v[rankKey]) row += _rankCell(s.ranks[subj]);
         });
@@ -755,7 +845,7 @@ const UI = (() => {
       if (v.totalRank) row += _rankCell(s.totalRank);
 
       if (edit && v.del)
-        row += `<td><button class="btn-del" onclick="UI.deleteStudent(${i})">✕</button></td>`;
+        row += `<td><button class="btn-del" onclick="UI.deleteStudent(${origIdx})">✕</button></td>`;
 
       row += "</tr>";
       return row;
@@ -790,11 +880,31 @@ const UI = (() => {
     renderTable();
   }
 
+  /**
+   * Called when user clicks a rank column header.
+   * Toggles asc ↔ desc if clicking the same field;
+   * resets to desc (best rank first) when switching fields.
+   *
+   * @param {string} field — "bot" | "zoo" | "phy" | "che" | "total"
+   */
+  function sortBy(field) {
+    const s = State.sort;
+    if (s.field === field) {
+      // Same column → toggle direction
+      s.dir = s.dir === "desc" ? "asc" : "desc";
+    } else {
+      // New column → default to desc (rank 1 at top)
+      s.field = field;
+      s.dir   = "desc";
+    }
+    renderTable();
+  }
+
   return {
     setStatus, renderExamList, loadExam, newExam, deleteExam,
     toggleMode, toggleColPanel,
     addStudent, updateStudent, deleteStudent,
-    renderTable
+    sortBy, renderTable
   };
 })();
 
