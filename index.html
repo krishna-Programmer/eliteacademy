@@ -1,32 +1,256 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Student Exam Manager v2.3</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Student Exam Manager v4</title>
+
+<!-- External Libraries -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<!-- Google Fonts: Clean academic feel -->
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 
 <style>
-body{font-family:Arial;margin:0;background:#f5f6fa}
-.container{max-width:1100px;margin:auto;padding:10px}
-.card{background:#fff;padding:12px;border-radius:10px;box-shadow:0 2px 6px rgba(0,0,0,0.1);margin-bottom:10px}
+/* ============================================================
+   CSS VARIABLES & RESET
+   ============================================================ */
+:root {
+  --bg:        #f0f2f7;
+  --card:      #ffffff;
+  --border:    #d8dce8;
+  --text:      #1a1d2e;
+  --muted:     #6b7280;
+  --accent:    #3b6ff5;
+  --accent-h:  #2d5ee0;
+  --danger:    #e53e3e;
+  --success:   #2ecc71;
+  --warn:      #f59e0b;
+  --rank1:     #fef3c7;
+  --rank2:     #e0f2fe;
+  --rank3:     #f0fdf4;
+  --shadow:    0 2px 8px rgba(0,0,0,0.08);
+  --radius:    10px;
+}
 
-h1,h3{text-align:center;margin:5px}
-.header h1[contenteditable]{outline:none;font-size:22px}
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
-.controls{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
-button{padding:6px 10px;border:none;border-radius:6px;background:#3498db;color:#fff;cursor:pointer}
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+}
 
-input,select{padding:5px;border-radius:6px;border:1px solid #ccc}
+/* ============================================================
+   LAYOUT
+   ============================================================ */
+.container { max-width: 1150px; margin: auto; padding: 12px; }
 
-.table-wrapper{overflow-x:auto}
-table{border-collapse:collapse;width:100%;font-size:12px;background:#fff}
-th,td{border:1px solid #ccc;padding:5px;text-align:center}
-th{background:#eee}
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 12px 16px;
+  margin-bottom: 10px;
+}
 
-@media print{
-  body{zoom:0.85}
-  .controls,#colPanel{display:none}
-  .table-wrapper{overflow:visible}
+/* ============================================================
+   HEADER CARD
+   ============================================================ */
+.header {
+  text-align: center;
+}
+
+.header h1 {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  outline: none; /* contenteditable, no ugly border */
+}
+
+.header h1:focus {
+  border-bottom: 2px dashed var(--accent);
+}
+
+.header-meta {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.header-meta input {
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 3px 7px;
+  background: var(--bg);
+  width: 180px;
+}
+
+.header-meta input.narrow { width: 65px; }
+
+/* ============================================================
+   TOOLBAR / CONTROLS
+   ============================================================ */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Exam selector dropdown */
+#examSelect {
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+/* Generic button styles */
+button {
+  padding: 5px 11px;
+  border: none;
+  border-radius: 6px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+}
+button:hover  { opacity: 0.88; }
+button:active { transform: scale(0.96); }
+
+/* Button colour variants */
+.btn-primary  { background: var(--accent);  color: #fff; }
+.btn-danger   { background: var(--danger);  color: #fff; }
+.btn-success  { background: var(--success); color: #fff; }
+.btn-warn     { background: var(--warn);    color: #fff; }
+.btn-neutral  { background: #e5e7eb;        color: var(--text); }
+.btn-edit     { background: #7c3aed;        color: #fff; }
+.btn-icon     { background: #e5e7eb;        color: var(--text); font-size: 14px; padding: 5px 9px; }
+
+/* Divider between button groups in toolbar */
+.toolbar-sep {
+  width: 1px;
+  height: 22px;
+  background: var(--border);
+  margin: 0 2px;
+}
+
+/* ============================================================
+   COLUMN VISIBILITY PANEL
+   ============================================================ */
+#colPanel {
+  display: none;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 14px;
+}
+
+#colPanel label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+/* ============================================================
+   STATUS BAR  (sync feedback)
+   ============================================================ */
+#statusBar {
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  display: none;          /* shown only when message active */
+  margin-left: auto;
+  font-weight: 500;
+}
+#statusBar.info    { background: #dbeafe; color: #1d4ed8; display: inline-block; }
+#statusBar.success { background: #dcfce7; color: #166534; display: inline-block; }
+#statusBar.error   { background: #fee2e2; color: #991b1b; display: inline-block; }
+
+/* ============================================================
+   TABLE
+   ============================================================ */
+.table-wrapper { overflow-x: auto; }
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 12px;
+  background: var(--card);
+}
+
+th, td {
+  border: 1px solid var(--border);
+  padding: 5px 7px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+th {
+  background: #f3f4f8;
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.3px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+/* Rank colouring */
+td.rank-1 { background: var(--rank1); font-weight: 600; }
+td.rank-2 { background: var(--rank2); }
+td.rank-3 { background: var(--rank3); }
+
+/* Inline edit inputs inside table */
+td input {
+  width: 55px;
+  padding: 3px 5px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  text-align: center;
+  background: var(--bg);
+}
+
+td input.wide { width: 130px; text-align: left; }
+
+/* ID / Name columns — left-align for readability */
+td:nth-child(1), td:nth-child(2), td:nth-child(3) { text-align: left; }
+
+/* Delete button in table */
+.btn-del {
+  padding: 2px 8px;
+  font-size: 11px;
+  background: #fee2e2;
+  color: var(--danger);
+  border-radius: 4px;
+  border: 1px solid #fca5a5;
+}
+
+/* ============================================================
+   PRINT STYLES
+   ============================================================ */
+@media print {
+  body { zoom: 0.80; background: #fff; }
+  .toolbar, #colPanel, #statusBar { display: none !important; }
+  .table-wrapper { overflow: visible; }
+  .card { box-shadow: none; border: none; }
 }
 </style>
 </head>
@@ -34,353 +258,903 @@ th{background:#eee}
 <body>
 <div class="container">
 
-<div class="card header">
-<h1 contenteditable="true">ELITE MEDICAL ACADEMY : KHAMMAM</h1>
-<h3>
-<input id="examName" value="LONGTERM CT - 5">
- | DATE: <span id="date"></span>
- | MAX: <input id="maxMarks" value="720" style="width:60px">
-</h3>
-</div>
+  <!-- ======================================================
+       HEADER CARD  — editable title, exam name, date, max marks
+       ====================================================== -->
+  <div class="card header">
+    <h1 contenteditable="true" id="academyTitle">ELITE MEDICAL ACADEMY : KHAMMAM</h1>
+    <div class="header-meta">
+      <input id="examName" value="LONGTERM CT - 5" title="Exam Name">
+      <!-- ID is the mandatory unique key for every student -->
+      | DATE: <span id="dateDisplay"></span>
+      | MAX: <input id="maxMarks" value="720" class="narrow" title="Max Marks">
+    </div>
+  </div>
 
-<div class="card controls" id="controls">
-<select id="examSelect" onchange="loadExam()"></select>
-<button onclick="newExam()">New</button>
-<button onclick="deleteExam()">Delete</button>
-<button onclick="triggerCSV()">Load Students</button>
-<input type="file" id="csvFile" accept=".csv" style="display:none">
-<button onclick="addStudent()">Add</button>
-<button onclick="exportExcel()">Excel</button>
-<button onclick="exportCSV()">CSV</button>
-<button onclick="printReport()">PDF</button>
-<button onclick="backupData()">Backup</button>
-<button onclick="triggerRestore()">Restore</button>
-<input type="file" id="restoreFile" accept=".json" style="display:none">
-<button onclick="toggleCols()">⚙️</button>
-<button onclick="toggleMode()" id="modeBtn">Switch to Edit</button>
-</div>
+  <!-- ======================================================
+       TOOLBAR CARD
+       ====================================================== -->
+  <div class="card">
+    <div class="toolbar" id="toolbar">
 
-<div id="colPanel" class="card" style="display:none">
-<label><input type="checkbox" checked data-col="bot"> Botany</label>
-<label><input type="checkbox" checked data-col="botRank"> Botany Rank</label>
-<label><input type="checkbox" checked data-col="zoo"> Zoology</label>
-<label><input type="checkbox" checked data-col="zooRank"> Zoology Rank</label>
-<label><input type="checkbox" checked data-col="phy"> Physics</label>
-<label><input type="checkbox" checked data-col="phyRank"> Physics Rank</label>
-<label><input type="checkbox" checked data-col="che"> Chemistry</label>
-<label><input type="checkbox" checked data-col="cheRank"> Chemistry Rank</label>
-<label><input type="checkbox" checked data-col="total"> Total</label>
-<label><input type="checkbox" checked data-col="totalRank"> Total Rank</label>
-<label><input type="checkbox" checked data-col="delete"> Delete</label>
-</div>
+      <!-- Exam selector -->
+      <select id="examSelect" onchange="UI.loadExam()"></select>
+      <button class="btn-primary"  onclick="UI.newExam()">+ New</button>
+      <button class="btn-danger"   onclick="UI.deleteExam()">Delete</button>
 
-<div class="card table-wrapper">
-<table>
-<thead id="thead"></thead>
-<tbody id="tbody"></tbody>
-</table>
-</div>
+      <span class="toolbar-sep"></span>
 
-</div>
+      <!-- Student management -->
+      <button class="btn-neutral"  onclick="UI.addStudent()">+ Student</button>
+      <button class="btn-neutral"  onclick="CSV.triggerLoad()">Load CSV</button>
+      <!-- hidden file inputs -->
+      <input type="file" id="csvFileInput"     accept=".csv"  style="display:none" onchange="CSV.load(this)">
+      <input type="file" id="restoreFileInput" accept=".json" style="display:none" onchange="Backup.restore(this)">
 
+      <span class="toolbar-sep"></span>
+
+      <!-- Export -->
+      <button class="btn-success"  onclick="Export.excel()">Excel</button>
+      <button class="btn-success"  onclick="Export.csv()">CSV</button>
+      <button class="btn-neutral"  onclick="window.print()">PDF</button>
+
+      <span class="toolbar-sep"></span>
+
+      <!-- Backup / Restore / Cloud -->
+      <button class="btn-warn"     onclick="Backup.download()">Backup</button>
+      <button class="btn-warn"     onclick="Backup.triggerRestore()">Restore</button>
+      <button class="btn-neutral"  onclick="Cloud.sync()">☁ Sync</button>
+
+      <span class="toolbar-sep"></span>
+
+      <!-- View / Edit toggle -->
+      <button class="btn-edit"     onclick="UI.toggleMode()" id="modeBtn">✏ Edit Mode</button>
+      <button class="btn-icon"     onclick="UI.toggleColPanel()">⚙️</button>
+
+      <!-- Status feedback (right-aligned via margin-left:auto) -->
+      <span id="statusBar"></span>
+    </div>
+
+    <!-- Column visibility checkboxes (hidden by default) -->
+    <div id="colPanel" class="card" style="margin-top:8px;margin-bottom:0">
+      <label><input type="checkbox" checked data-col="bot">      Botany</label>
+      <label><input type="checkbox" checked data-col="botRank">  Botany Rank</label>
+      <label><input type="checkbox" checked data-col="zoo">      Zoology</label>
+      <label><input type="checkbox" checked data-col="zooRank">  Zoology Rank</label>
+      <label><input type="checkbox" checked data-col="phy">      Physics</label>
+      <label><input type="checkbox" checked data-col="phyRank">  Physics Rank</label>
+      <label><input type="checkbox" checked data-col="che">      Chemistry</label>
+      <label><input type="checkbox" checked data-col="cheRank">  Chemistry Rank</label>
+      <label><input type="checkbox" checked data-col="total">    Total</label>
+      <label><input type="checkbox" checked data-col="totalRank">Total Rank</label>
+      <label><input type="checkbox" checked data-col="del">      Delete Col</label>
+    </div>
+  </div>
+
+  <!-- ======================================================
+       DATA TABLE
+       ====================================================== -->
+  <div class="card table-wrapper">
+    <table>
+      <thead id="thead"></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
+</div><!-- /container -->
+
+<!-- ============================================================
+     JAVASCRIPT — Modular IIFE pattern for clear separation
+     ============================================================
+
+  Modules:
+    Store   — localStorage read / write helpers
+    Cloud   — Supabase read / write helpers
+    Ranks   — ranking + totals calculation logic
+    State   — shared mutable application state
+    UI      — DOM rendering, edit/view toggle, exam CRUD
+    CSV     — load students from CSV file
+    Export  — Excel and CSV export
+    Backup  — JSON backup download and restore
+    App     — bootstrap / initialisation
+============================================================ -->
 <script>
-document.getElementById("date").innerText=new Date().toLocaleDateString();
-
-const Store={
-get(){return JSON.parse(localStorage.getItem("exams")||"{}")},
-set(d){localStorage.setItem("exams",JSON.stringify(d))}
-};
-
-let exams=Store.get();
-let current="";
-let editMode=false;
-
-let visible={bot:true,zoo:true,phy:true,che:true,botRank:true,zooRank:true,phyRank:true,cheRank:true,total:true,totalRank:true,delete:true};
-
-function toggleMode(){
-editMode=!editMode;
-document.getElementById("modeBtn").innerText=editMode?"Switch to View":"Switch to Edit";
-document.getElementById("controls").style.display=editMode?"flex":"none";
-render();
-}
-
-function init(){
-if(!Object.keys(exams).length) exams["Exam 1"]=[];
-current=Object.keys(exams)[0];
-renderExamList();
-loadExam();
-}
-
-function renderExamList(){
-let s=document.getElementById("examSelect");
-s.innerHTML="";
-Object.keys(exams).forEach(e=>{
-s.innerHTML+=`<option ${e===current?"selected":""}>${e}</option>`;
-});
-}
-
-function loadExam(){
-current=document.getElementById("examSelect").value;
-render();
-}
-
-function newExam(){
-let n=prompt("Exam name?");
-if(!n)return;
-exams[n]=[];
-current=n;
-Store.set(exams);
-renderExamList();
-render();
-}
-
-function deleteExam(){
-if(!confirm("Delete exam?"))return;
-delete exams[current];
-Store.set(exams);
-init();
-}
-
-function students(){return exams[current];}
-
-function addStudent(){
-students().push({roll:"",name:"",bot:0,zoo:0,phy:0,che:0,ranks:{},total:0,totalRank:0});
-calc();
-}
-
-function upd(i,f,v){
-students()[i][f]=(f==="roll"||f==="name")?v:+v;
-calc();
-}
-
-function del(i){
-students().splice(i,1);
-render();
-Store.set(exams);
-}
-
-function calc(){
-students().forEach(s=>s.total=s.bot+s.zoo+s.phy+s.che);
-
-["bot","zoo","phy","che"].forEach(f=>{
-let s=[...students()].sort((a,b)=>b[f]-a[f]);
-s.forEach((x,i)=>{
-x.ranks[f]=(i>0&&s[i][f]==s[i-1][f])?s[i-1].ranks[f]:i+1;
-});
-});
-
-let s=[...students()].sort((a,b)=>b.total-a.total);
-s.forEach((x,i)=>{
-x.totalRank=(i>0&&s[i].total==s[i-1].total)?s[i-1].totalRank:i+1;
-});
-
-render();
-Store.set(exams);
-}
-
-function renderHeader(){
-let h="<tr><th>Roll</th><th>Name</th>";
-
-if(visible.bot) h+="<th>Botany</th>";
-if(visible.botRank) h+="<th>Rank</th>";
-
-if(visible.zoo) h+="<th>Zoology</th>";
-if(visible.zooRank) h+="<th>Rank</th>";
-
-if(visible.phy) h+="<th>Physics</th>";
-if(visible.phyRank) h+="<th>Rank</th>";
-
-if(visible.che) h+="<th>Chemistry</th>";
-if(visible.cheRank) h+="<th>Rank</th>";
-
-if(visible.total) h+="<th>Total</th>";
-if(visible.totalRank) h+="<th>Rank</th>";
-
-if(editMode && visible.delete) h+="<th>Delete</th>";
-
-h+="</tr>";
-document.getElementById("thead").innerHTML=h;
-}
-
-function render(){
-renderHeader();
-let t=document.getElementById("tbody");
-t.innerHTML="";
 
-students().forEach((s,i)=>{
-let row="<tr>";
+/* ============================================================
+   STORE MODULE — Thin wrapper around localStorage
+   ============================================================ */
+const Store = (() => {
+  const KEY = "exams";
+
+  /** Read all exams from localStorage. Returns plain object. */
+  function get() {
+    return JSON.parse(localStorage.getItem(KEY) || "{}");
+  }
+
+  /** Persist all exams to localStorage. */
+  function set(data) {
+    localStorage.setItem(KEY, JSON.stringify(data));
+  }
+
+  return { get, set };
+})();
+
+
+/* ============================================================
+   CLOUD MODULE — Supabase integration
+   ============================================================
+
+  Uses a single row (id=1) in the "exam_data" table with a
+  jsonb column called "data" that stores the entire exams object.
+  Table DDL:
+    create table exam_data (id int primary key, data jsonb);
+============================================================ */
+const Cloud = (() => {
+  // TODO: Replace with your own project URL and publishable key
+  const SUPABASE_URL = "https://sgqvttgaqfnmtmtxroyj.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_rs4ksREQHYbU4hcFbrufjg_ICN0m2v6";
+
+  const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  /**
+   * Pull data from Supabase and merge into localStorage.
+   * Called once on app start. Silently fails if offline.
+   */
+  async function pull() {
+    try {
+      const { data, error } = await client
+        .from("exam_data")
+        .select("*")
+        .eq("id", 1)
+        .single();
+
+      if (!error && data?.data) {
+        // Cloud wins on initial load — overwrite local cache
+        Store.set(data.data);
+        return data.data;
+      }
+    } catch (e) {
+      console.warn("Cloud pull skipped:", e.message);
+    }
+    return null;
+  }
+
+  /**
+   * Push the current in-memory exams object to Supabase.
+   * Upsert ensures the row is created if it doesn't exist yet.
+   */
+  async function sync() {
+    UI.setStatus("Syncing…", "info");
+    try {
+      const { error } = await client
+        .from("exam_data")
+        .upsert({ id: 1, data: State.exams });
+
+      if (error) throw error;
+      UI.setStatus("Synced ✓", "success");
+    } catch (e) {
+      console.error("Cloud sync failed:", e.message);
+      UI.setStatus("Sync failed ✗", "error");
+    }
+  }
+
+  return { pull, sync };
+})();
+
+
+/* ============================================================
+   RANKS MODULE — Calculate totals and subject/overall ranks
+   ============================================================ */
+const Ranks = (() => {
+  const SUBJECTS = ["bot", "zoo", "phy", "che"];
+
+  /**
+   * Recalculate totals and all rank fields for every student
+   * in the currently active exam.
+   *
+   * Tie-handling: tied students share the same (lower) rank,
+   * and the next distinct score skips ranks accordingly —
+   * e.g. ranks 1, 1, 3, 4 (not 1, 1, 2, 3).
+   */
+  function calc() {
+    const students = State.currentStudents();
+
+    // 1. Recalculate totals
+    students.forEach(s => {
+      s.total = s.bot + s.zoo + s.phy + s.che;
+    });
+
+    // 2. Subject ranks
+    SUBJECTS.forEach(field => {
+      // Sort descending by this subject score
+      const sorted = [...students].sort((a, b) => b[field] - a[field]);
+
+      sorted.forEach((student, idx) => {
+        if (idx === 0) {
+          student.ranks[field] = 1;
+        } else {
+          // Same score as the student above → share that rank
+          student.ranks[field] =
+            student[field] === sorted[idx - 1][field]
+              ? sorted[idx - 1].ranks[field]
+              : idx + 1;
+        }
+      });
+    });
+
+    // 3. Overall (total) rank — same tie logic
+    const sortedTotal = [...students].sort((a, b) => b.total - a.total);
+    sortedTotal.forEach((student, idx) => {
+      if (idx === 0) {
+        student.totalRank = 1;
+      } else {
+        student.totalRank =
+          student.total === sortedTotal[idx - 1].total
+            ? sortedTotal[idx - 1].totalRank
+            : idx + 1;
+      }
+    });
+  }
+
+  return { calc };
+})();
+
+
+/* ============================================================
+   STATE MODULE — Single source of truth for app data
+   ============================================================ */
+const State = (() => {
+  let exams   = {};    // { "Exam 1": [ ...students ] }
+  let current = "";    // currently selected exam name
+  let editMode = false;
+
+  /**
+   * Which columns are currently visible in the table.
+   * Keys match data-col attributes in the colPanel checkboxes.
+   */
+  const visible = {
+    bot: true, botRank: true,
+    zoo: true, zooRank: true,
+    phy: true, phyRank: true,
+    che: true, cheRank: true,
+    total: true, totalRank: true,
+    del: true
+  };
+
+  /** Shortcut to get the student array for the active exam. */
+  function currentStudents() {
+    return exams[current] || [];
+  }
+
+  return { exams, current, editMode, visible, currentStudents,
+           // Setters that also update the let bindings
+           setCurrent(v)  { current  = v; State.current  = v; },
+           setEditMode(v) { editMode = v; State.editMode = v; },
+           setExams(v)    { exams    = v; State.exams    = v; }
+         };
+})();
+
+
+/* ============================================================
+   UI MODULE — DOM rendering and user-interaction handlers
+   ============================================================ */
+const UI = (() => {
+
+  /* ----------------------------------------------------------
+     Status bar helpers
+  ---------------------------------------------------------- */
+
+  let _statusTimer = null;
+
+  /** Show a brief status message in the toolbar. */
+  function setStatus(msg, type = "info", ms = 3000) {
+    const bar = document.getElementById("statusBar");
+    bar.className = type;
+    bar.textContent = msg;
+    clearTimeout(_statusTimer);
+    _statusTimer = setTimeout(() => { bar.className = ""; bar.textContent = ""; }, ms);
+  }
+
+  /* ----------------------------------------------------------
+     Exam list (dropdown)
+  ---------------------------------------------------------- */
+
+  /** Rebuild the exam <select> dropdown from State.exams keys. */
+  function renderExamList() {
+    const sel = document.getElementById("examSelect");
+    sel.innerHTML = Object.keys(State.exams)
+      .map(name => `<option ${name === State.current ? "selected" : ""}>${name}</option>`)
+      .join("");
+  }
+
+  /** Called when dropdown changes — loads the selected exam. */
+  function loadExam() {
+    State.setCurrent(document.getElementById("examSelect").value);
+    renderTable();
+  }
+
+  /** Prompt user for a name, create a new empty exam. */
+  function newExam() {
+    const name = prompt("New exam name:");
+    if (!name || !name.trim()) return;
+    State.exams[name.trim()] = [];
+    State.setCurrent(name.trim());
+    _saveAndRender();
+    renderExamList();
+  }
+
+  /** Delete the currently selected exam after confirmation. */
+  function deleteExam() {
+    if (!confirm(`Delete "${State.current}"? This cannot be undone.`)) return;
+    delete State.exams[State.current];
+    _saveAndRender();
+    App.init();          // reset to first available exam
+  }
+
+  /* ----------------------------------------------------------
+     View / Edit mode toggle
+  ---------------------------------------------------------- */
+
+  /**
+   * Toggle between view-only (clean printable layout) and
+   * edit mode (inline inputs + delete buttons visible).
+   */
+  function toggleMode() {
+    State.setEditMode(!State.editMode);
+    document.getElementById("modeBtn").textContent =
+      State.editMode ? "👁 View Mode" : "✏ Edit Mode";
+    renderTable();
+  }
+
+  /* ----------------------------------------------------------
+     Column visibility panel
+  ---------------------------------------------------------- */
+
+  /** Show / hide the column checkbox panel. */
+  function toggleColPanel() {
+    const panel = document.getElementById("colPanel");
+    const isHidden = panel.style.display === "none" || panel.style.display === "";
+    panel.style.display = isHidden ? "flex" : "none";
+
+    // Attach change handlers each time panel opens (idempotent)
+    document.querySelectorAll("#colPanel input[type=checkbox]").forEach(cb => {
+      cb.onchange = () => {
+        State.visible[cb.dataset.col] = cb.checked;
+        renderTable();
+      };
+    });
+  }
+
+  /* ----------------------------------------------------------
+     Student CRUD
+  ---------------------------------------------------------- */
+
+  /**
+   * Add a new student. ID is the mandatory unique key.
+   * All other fields are optional and default to empty/zero.
+   */
+  function addStudent() {
+    const id = prompt("Enter Student ID (mandatory, must be unique):");
+    if (!id || !id.trim()) {
+      alert("Student ID is required and cannot be empty.");
+      return;
+    }
+    const trimmedId = id.trim();
+
+    // Reject duplicate IDs within the same exam
+    const duplicate = State.currentStudents().some(s => s.id === trimmedId);
+    if (duplicate) {
+      alert(`Student ID "${trimmedId}" already exists in this exam.`);
+      return;
+    }
+
+    State.currentStudents().push({
+      id: trimmedId,
+      name: "",                           // optional — can be filled in edit mode
+      bot: 0, zoo: 0, phy: 0, che: 0,    // optional — default 0
+      ranks: {}, total: 0, totalRank: 0
+    });
+    _calcSaveRender();
+  }
+
+  /**
+   * Update a single field on student at array-index i.
+   *   - "id"   → string; must be non-empty and unique across the exam
+   *   - "name" → string; optional, no uniqueness constraint
+   *   - others → number (subject scores)
+   */
+  function updateStudent(i, field, value) {
+    const student = State.currentStudents()[i];
+
+    if (field === "id") {
+      const trimmed = value.trim();
+      if (!trimmed) { alert("ID cannot be empty."); return; }
+      // Uniqueness check: compare against every OTHER student
+      const dup = State.currentStudents().some((s, idx) => idx !== i && s.id === trimmed);
+      if (dup) { alert(`ID "${trimmed}" is already used by another student.`); return; }
+      student.id = trimmed;
+    } else if (field === "name") {
+      student.name = value;               // plain string, no validation needed
+    } else {
+      student[field] = +value;            // coerce to number for score fields
+    }
+
+    _calcSaveRender();
+  }
+
+  /** Remove student at index i from the current exam. */
+  function deleteStudent(i) {
+    State.currentStudents().splice(i, 1);
+    _saveAndRender();
+  }
+
+  /* ----------------------------------------------------------
+     Table rendering
+  ---------------------------------------------------------- */
+
+  /** Render both the header row and all student rows. */
+  function renderTable() {
+    _renderHeader();
+    _renderRows();
+  }
+
+  /** Build the <thead> row using the current visible config. */
+  function _renderHeader() {
+    const v = State.visible;
+    let html = "<tr><th>#</th><th>ID</th><th>Name</th>";
+
+    if (v.bot)      html += "<th>Botany</th>";
+    if (v.botRank)  html += "<th>B.Rank</th>";
+    if (v.zoo)      html += "<th>Zoology</th>";
+    if (v.zooRank)  html += "<th>Z.Rank</th>";
+    if (v.phy)      html += "<th>Physics</th>";
+    if (v.phyRank)  html += "<th>P.Rank</th>";
+    if (v.che)      html += "<th>Chemistry</th>";
+    if (v.cheRank)  html += "<th>C.Rank</th>";
+    if (v.total)    html += "<th>Total</th>";
+    if (v.totalRank)html += "<th>Rank</th>";
+
+    if (State.editMode && v.del) html += "<th>Del</th>";
+
+    html += "</tr>";
+    document.getElementById("thead").innerHTML = html;
+  }
+
+  /**
+   * Helper: render a rank <td> with colour coding for top 3.
+   */
+  function _rankCell(rankVal) {
+    const cls = rankVal === 1 ? "rank-1" : rankVal === 2 ? "rank-2" : rankVal === 3 ? "rank-3" : "";
+    return `<td class="${cls}">${rankVal || ""}</td>`;
+  }
+
+  /** Build all <tbody> rows from the current exam's student list. */
+  function _renderRows() {
+    const v    = State.visible;
+    const edit = State.editMode;
+    const rows = State.currentStudents().map((s, i) => {
+      let row = `<tr>
+        <td>${i + 1}</td>
+        <td>${edit ? `<input class="wide" value="${_esc(s.id)}"
+              onchange="UI.updateStudent(${i},'id',this.value)">` : _esc(s.id)}</td>
+        <td>${edit ? `<input class="wide" value="${_esc(s.name)}"
+              onchange="UI.updateStudent(${i},'name',this.value)">` : _esc(s.name)}</td>`;
+
+      // Subject columns
+      [["bot","botRank"],["zoo","zooRank"],["phy","phyRank"],["che","cheRank"]]
+        .forEach(([subj, rankKey]) => {
+          if (v[subj])
+            row += `<td>${edit
+              ? `<input type="number" value="${s[subj]}"
+                   onchange="UI.updateStudent(${i},'${subj}',this.value)">`
+              : s[subj]}</td>`;
+          if (v[rankKey]) row += _rankCell(s.ranks[subj]);
+        });
+
+      if (v.total)     row += `<td><strong>${s.total}</strong></td>`;
+      if (v.totalRank) row += _rankCell(s.totalRank);
+
+      if (edit && v.del)
+        row += `<td><button class="btn-del" onclick="UI.deleteStudent(${i})">✕</button></td>`;
+
+      row += "</tr>";
+      return row;
+    });
+
+    document.getElementById("tbody").innerHTML = rows.join("");
+  }
+
+  /* ----------------------------------------------------------
+     Private helpers
+  ---------------------------------------------------------- */
+
+  /** Escape HTML special chars to prevent XSS in inline values. */
+  function _esc(str) {
+    return String(str ?? "")
+      .replace(/&/g,"&amp;").replace(/</g,"&lt;")
+      .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+
+  /** Recalculate ranks, save to localStorage + cloud, re-render. */
+  function _calcSaveRender() {
+    Ranks.calc();
+    Store.set(State.exams);
+    Cloud.sync();
+    renderTable();
+  }
+
+  /** Save to localStorage + cloud, re-render (no rank recalc). */
+  function _saveAndRender() {
+    Store.set(State.exams);
+    Cloud.sync();
+    renderTable();
+  }
+
+  return {
+    setStatus, renderExamList, loadExam, newExam, deleteExam,
+    toggleMode, toggleColPanel,
+    addStudent, updateStudent, deleteStudent,
+    renderTable
+  };
+})();
+
+
+/* ============================================================
+   CSV MODULE — Load / upsert students from a CSV file
+   ============================================================
+
+  Rules:
+    • "id" column is MANDATORY — rows without an id are skipped.
+    • All other columns (name, bot, zoo, phy, che) are OPTIONAL.
+      If a column is absent from the CSV, that field is left
+      unchanged for existing students or defaults to "" / 0 for
+      new ones.
+    • UPSERT by ID:
+        - If a student with that id already exists → update only
+          the columns present in this CSV (others unchanged).
+        - If the id is new → insert as a fresh student row.
+
+  Accepted column name aliases (case-insensitive, partial match):
+    id        → id, roll, rollno, student_id, studentid
+    name      → name, student_name
+    botany    → bot, botany
+    zoology   → zoo, zoology
+    physics   → phy, physics
+    chemistry → che, chem, chemistry
+============================================================ */
+const CSV = (() => {
+
+  /** Opens the hidden file input to let the user pick a CSV. */
+  function triggerLoad() {
+    document.getElementById("csvFileInput").value = ""; // reset so same file can be re-picked
+    document.getElementById("csvFileInput").click();
+  }
+
+  /**
+   * Parse the selected CSV and upsert students into the current exam.
+   *
+   * Upsert logic (keyed on "id"):
+   *   EXISTING id → overwrite only the columns present in this CSV.
+   *   NEW id      → insert a new student row with available columns.
+   *   MISSING id  → row is skipped and counted in skippedCount.
+   *
+   * @param {HTMLInputElement} input — the file <input> element
+   */
+  function load(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = e => {
+
+      // Split into non-empty lines
+      const lines = e.target.result
+        .split("\n")
+        .map(l => l.trim())
+        .filter(l => l.length > 0);
+
+      if (lines.length < 2) {
+        alert("CSV appears empty or has no data rows.");
+        return;
+      }
+
+      // ── Step 1: Map header names to column indices ──────────────
+      const headers = lines[0].toLowerCase().split(",").map(h => h.trim());
+
+      const col = {
+        id:   _findCol(headers, ["id", "roll", "rollno", "student_id", "studentid"]),
+        name: _findCol(headers, ["name", "student_name"]),
+        bot:  _findCol(headers, ["bot", "botany"]),
+        zoo:  _findCol(headers, ["zoo", "zoology"]),
+        phy:  _findCol(headers, ["phy", "physics"]),
+        che:  _findCol(headers, ["che", "chem", "chemistry"])
+      };
+
+      // ID column is mandatory — abort if missing
+      if (col.id === -1) {
+        alert(
+          "No ID column found in this CSV.\n\n" +
+          "Please add a column named one of: id, roll, rollno, student_id"
+        );
+        return;
+      }
+
+      // ── Step 2: Build a lookup map of existing students by id ───
+      // { "S001": <student object ref>, ... }
+      const existingById = {};
+      State.currentStudents().forEach(s => {
+        if (s.id) existingById[s.id] = s;
+      });
+
+      // ── Step 3: Process each data row ───────────────────────────
+      let insertedCount = 0;
+      let updatedCount  = 0;
+      let skippedCount  = 0;
+
+      for (let i = 1; i < lines.length; i++) {
+        const parts = lines[i].split(",").map(p => p.trim());
+
+        // Extract ID — mandatory; skip row if blank
+        const rawId = col.id !== -1 ? (parts[col.id] ?? "").trim() : "";
+        if (!rawId) {
+          skippedCount++;
+          continue;
+        }
+
+        if (existingById[rawId]) {
+          // ── UPDATE: student already exists ──────────────────────
+          // Only overwrite fields that are present in this CSV.
+          const s = existingById[rawId];
+          if (col.name !== -1) s.name = parts[col.name] ?? s.name;
+          if (col.bot  !== -1) s.bot  = +parts[col.bot]  || s.bot;
+          if (col.zoo  !== -1) s.zoo  = +parts[col.zoo]  || s.zoo;
+          if (col.phy  !== -1) s.phy  = +parts[col.phy]  || s.phy;
+          if (col.che  !== -1) s.che  = +parts[col.che]  || s.che;
+          updatedCount++;
+
+        } else {
+          // ── INSERT: new student ─────────────────────────────────
+          // Absent columns default to "" (strings) or 0 (numbers).
+          const newStudent = {
+            id:   rawId,
+            name: col.name !== -1 ? (parts[col.name] ?? "")   : "",
+            bot:  col.bot  !== -1 ? (+parts[col.bot]  || 0)   : 0,
+            zoo:  col.zoo  !== -1 ? (+parts[col.zoo]  || 0)   : 0,
+            phy:  col.phy  !== -1 ? (+parts[col.phy]  || 0)   : 0,
+            che:  col.che  !== -1 ? (+parts[col.che]  || 0)   : 0,
+            ranks: {}, total: 0, totalRank: 0
+          };
+          State.currentStudents().push(newStudent);
+          existingById[rawId] = newStudent; // prevent duplicate within same CSV
+          insertedCount++;
+        }
+      }
+
+      // ── Step 4: Recalculate ranks and persist ───────────────────
+      Ranks.calc();
+      Store.set(State.exams);
+      Cloud.sync();
+      UI.renderTable();
+
+      // ── Step 5: Show summary ────────────────────────────────────
+      const parts = [];
+      if (insertedCount) parts.push(`${insertedCount} added`);
+      if (updatedCount)  parts.push(`${updatedCount} updated`);
+      if (skippedCount)  parts.push(`${skippedCount} skipped (no ID)`);
+      UI.setStatus(parts.join(" · ") + " ✓", "success", 5000);
+    };
+
+    reader.readAsText(file);
+  }
+
+  /**
+   * Find the first column index whose lowercased header contains
+   * any of the given keyword strings.
+   *
+   * @param {string[]} headers  — lowercased header array
+   * @param {string[]} keywords — list of partial-match strings
+   * @returns {number} column index, or -1 if not found
+   */
+  function _findCol(headers, keywords) {
+    return headers.findIndex(h => keywords.some(k => h.includes(k)));
+  }
+
+  return { triggerLoad, load };
+})();
+
+
+/* ============================================================
+   EXPORT MODULE — Excel and CSV export
+   ============================================================ */
+const Export = (() => {
+
+  /**
+   * Build a 2D array (headers + rows) respecting visible columns.
+   * Used by both Excel and CSV export.
+   */
+  function _buildMatrix() {
+    const v    = State.visible;
+    const rows = [[]]; // rows[0] = header row
+
+    // Header
+    rows[0].push("ID", "Name");
+    if (v.bot)      rows[0].push("Botany");
+    if (v.botRank)  rows[0].push("Botany Rank");
+    if (v.zoo)      rows[0].push("Zoology");
+    if (v.zooRank)  rows[0].push("Zoology Rank");
+    if (v.phy)      rows[0].push("Physics");
+    if (v.phyRank)  rows[0].push("Physics Rank");
+    if (v.che)      rows[0].push("Chemistry");
+    if (v.cheRank)  rows[0].push("Chemistry Rank");
+    if (v.total)    rows[0].push("Total");
+    if (v.totalRank)rows[0].push("Total Rank");
+
+    // Data rows
+    State.currentStudents().forEach(s => {
+      const row = [s.id, s.name];
+      if (v.bot)      row.push(s.bot);
+      if (v.botRank)  row.push(s.ranks.bot   ?? "");
+      if (v.zoo)      row.push(s.zoo);
+      if (v.zooRank)  row.push(s.ranks.zoo   ?? "");
+      if (v.phy)      row.push(s.phy);
+      if (v.phyRank)  row.push(s.ranks.phy   ?? "");
+      if (v.che)      row.push(s.che);
+      if (v.cheRank)  row.push(s.ranks.che   ?? "");
+      if (v.total)    row.push(s.total);
+      if (v.totalRank)row.push(s.totalRank   ?? "");
+      rows.push(row);
+    });
+
+    return rows;
+  }
+
+  /** Download as .xlsx using the SheetJS library. */
+  function excel() {
+    const matrix = _buildMatrix();
+    const ws = XLSX.utils.aoa_to_sheet(matrix);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, State.current.slice(0, 31)); // sheet name ≤31 chars
+    XLSX.writeFile(wb, State.current + ".xlsx");
+  }
+
+  /** Download as plain .csv file. */
+  function csv() {
+    const matrix = _buildMatrix();
+    const content = matrix.map(row => row.join(",")).join("\n");
+    _download(content, State.current + ".csv", "text/csv");
+  }
+
+  /** Utility: trigger a browser file download. */
+  function _download(content, filename, mime) {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([content], { type: mime }));
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(a.href); // clean up
+  }
+
+  return { excel, csv };
+})();
+
+
+/* ============================================================
+   BACKUP MODULE — JSON backup and restore
+   ============================================================ */
+const Backup = (() => {
+
+  /** Serialize all exams to a JSON file and prompt download. */
+  function download() {
+    const content = JSON.stringify(State.exams, null, 2);
+    const ts      = new Date().toISOString().slice(0, 10);
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([content], { type: "application/json" }));
+    a.download = `exam-backup-${ts}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  /** Opens the hidden file input for JSON restore. */
+  function triggerRestore() {
+    document.getElementById("restoreFileInput").value = "";
+    document.getElementById("restoreFileInput").click();
+  }
+
+  /**
+   * Read the chosen JSON file and merge / replace local data.
+   *
+   * @param {HTMLInputElement} input — the file input element
+   */
+  function restore(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = e => {
+      let parsed;
+      try {
+        parsed = JSON.parse(e.target.result);
+      } catch {
+        alert("Invalid JSON file.");
+        return;
+      }
+
+      const replace = confirm(
+        "OK = Replace ALL existing data with backup\nCancel = Merge (backup exams are added, existing kept)"
+      );
+
+      if (replace) {
+        State.setExams(parsed);
+      } else {
+        // Merge: backup exams override same-named local exams
+        Object.assign(State.exams, parsed);
+      }
+
+      Store.set(State.exams);
+      Cloud.sync();
+      App.init(); // re-initialise UI with restored data
+      UI.setStatus("Backup restored ✓", "success");
+    };
+
+    reader.readAsText(file);
+  }
+
+  return { download, triggerRestore, restore };
+})();
+
+
+/* ============================================================
+   APP MODULE — Bootstrap sequence
+   ============================================================ */
+const App = (() => {
+
+  /**
+   * (Re-)initialise the entire application.
+   * Called on first load and after restore.
+   */
+  function init() {
+    // Ensure at least one exam exists
+    if (!Object.keys(State.exams).length) {
+      State.exams["Exam 1"] = [];
+    }
+
+    // Default to the first exam
+    State.setCurrent(Object.keys(State.exams)[0]);
+
+    UI.renderExamList();
+    UI.renderTable();
+  }
+
+  /**
+   * Entry point — runs on page load.
+   * 1. Show today's date
+   * 2. Load local data
+   * 3. Try to pull fresher data from cloud
+   * 4. Initialise UI
+   */
+  async function start() {
+    // Set date display
+    document.getElementById("dateDisplay").textContent =
+      new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+
+    // Load from localStorage first (instant)
+    State.setExams(Store.get());
+
+    // Attempt cloud pull (may overwrite with fresher data)
+    const cloudData = await Cloud.pull();
+    if (cloudData) State.setExams(cloudData);
+
+    init();
+  }
+
+  return { init, start };
+})();
+
+
+/* ============================================================
+   BOOTSTRAP — Start the application
+   ============================================================ */
+App.start();
 
-row+=`<td>${editMode?`<input value="${s.roll}" onchange="upd(${i},'roll',this.value)">`:s.roll}</td>`;
-row+=`<td>${editMode?`<input value="${s.name}" onchange="upd(${i},'name',this.value)">`:s.name}</td>`;
-
-if(visible.bot) row+=`<td>${editMode?`<input type="number" value="${s.bot}" onchange="upd(${i},'bot',this.value)">`:s.bot}</td>`;
-if(visible.botRank) row+=`<td>${s.ranks.bot||""}</td>`;
-
-if(visible.zoo) row+=`<td>${editMode?`<input type="number" value="${s.zoo}" onchange="upd(${i},'zoo',this.value)">`:s.zoo}</td>`;
-if(visible.zooRank) row+=`<td>${s.ranks.zoo||""}</td>`;
-
-if(visible.phy) row+=`<td>${editMode?`<input type="number" value="${s.phy}" onchange="upd(${i},'phy',this.value)">`:s.phy}</td>`;
-if(visible.phyRank) row+=`<td>${s.ranks.phy||""}</td>`;
-
-if(visible.che) row+=`<td>${editMode?`<input type="number" value="${s.che}" onchange="upd(${i},'che',this.value)">`:s.che}</td>`;
-if(visible.cheRank) row+=`<td>${s.ranks.che||""}</td>`;
-
-if(visible.total) row+=`<td>${s.total}</td>`;
-if(visible.totalRank) row+=`<td>${s.totalRank||""}</td>`;
-
-if(editMode && visible.delete) row+=`<td><button onclick="del(${i})">X</button></td>`;
-
-row+="</tr>";
-t.innerHTML+=row;
-});
-}
-
-function toggleCols(){
-let p=document.getElementById("colPanel");
-p.style.display=p.style.display==="none"?"block":"none";
-
-document.querySelectorAll("#colPanel input").forEach(i=>{
-i.onchange=()=>{
-visible[i.dataset.col]=i.checked;
-render();
-};
-});
-}
-
-function triggerCSV(){document.getElementById("csvFile").click();}
-function triggerRestore(){document.getElementById("restoreFile").click();}
-
-function loadCSV(){
-let f=document.getElementById("csvFile").files[0];
-if(!f)return;
-
-let r=new FileReader();
-r.onload=e=>{
-let lines=e.target.result.split("\n").filter(l=>l.trim());
-let h=lines[0].toLowerCase().split(",");
-
-let map={
-roll:h.findIndex(x=>x.includes("roll")),
-name:h.findIndex(x=>x.includes("name")),
-bot:h.findIndex(x=>x.includes("bot")),
-zoo:h.findIndex(x=>x.includes("zoo")),
-phy:h.findIndex(x=>x.includes("phy")),
-che:h.findIndex(x=>x.includes("che"))
-};
-
-if(confirm("Replace existing data?")) exams[current]=[];
-
-for(let i=1;i<lines.length;i++){
-let p=lines[i].split(",");
-students().push({
-roll:p[map.roll],
-name:p[map.name],
-bot:+p[map.bot]||0,
-zoo:+p[map.zoo]||0,
-phy:+p[map.phy]||0,
-che:+p[map.che]||0,
-ranks:{},total:0,totalRank:0
-});
-}
-
-calc();
-};
-r.readAsText(f);
-}
-
-function getHeaders(){
-let h=["Roll","Name"];
-
-if(visible.bot) h.push("Botany");
-if(visible.botRank) h.push("Botany Rank");
-
-if(visible.zoo) h.push("Zoology");
-if(visible.zooRank) h.push("Zoology Rank");
-
-if(visible.phy) h.push("Physics");
-if(visible.phyRank) h.push("Physics Rank");
-
-if(visible.che) h.push("Chemistry");
-if(visible.cheRank) h.push("Chemistry Rank");
-
-if(visible.total) h.push("Total");
-if(visible.totalRank) h.push("Total Rank");
-
-return h;
-}
-
-function getRow(s){
-let r=[s.roll,s.name];
-
-if(visible.bot) r.push(s.bot);
-if(visible.botRank) r.push(s.ranks.bot||"");
-
-if(visible.zoo) r.push(s.zoo);
-if(visible.zooRank) r.push(s.ranks.zoo||"");
-
-if(visible.phy) r.push(s.phy);
-if(visible.phyRank) r.push(s.ranks.phy||"");
-
-if(visible.che) r.push(s.che);
-if(visible.cheRank) r.push(s.ranks.che||"");
-
-if(visible.total) r.push(s.total);
-if(visible.totalRank) r.push(s.totalRank||"");
-
-return r;
-}
-
-function exportCSV(){
-let rows=[getHeaders()];
-students().forEach(s=>rows.push(getRow(s)));
-
-let csv=rows.map(r=>r.join(",")).join("\n");
-let a=document.createElement("a");
-a.href=URL.createObjectURL(new Blob([csv]));
-a.download=current+".csv";
-a.click();
-}
-
-function exportExcel(){
-let rows=[getHeaders()];
-students().forEach(s=>rows.push(getRow(s)));
-
-let ws=XLSX.utils.aoa_to_sheet(rows);
-let wb=XLSX.utils.book_new();
-XLSX.utils.book_append_sheet(wb,ws,current);
-XLSX.writeFile(wb,current+".xlsx");
-}
-
-function printReport(){window.print();}
-
-function backupData(){
-let data=localStorage.getItem("exams");
-let a=document.createElement("a");
-a.href=URL.createObjectURL(new Blob([data]));
-a.download="backup.json";
-a.click();
-}
-
-function restoreData(file){
-let r=new FileReader();
-r.onload=e=>{
-let data=JSON.parse(e.target.result);
-
-if(confirm("Replace existing data?")){
-localStorage.setItem("exams",JSON.stringify(data));
-}else{
-let ex=Store.get();
-Object.assign(ex,data);
-localStorage.setItem("exams",JSON.stringify(ex));
-}
-
-location.reload();
-};
-r.readAsText(file);
-}
-
-init();
 </script>
-
 </body>
 </html>
