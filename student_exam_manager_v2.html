@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Student Exam Manager v2</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<style>
+body{font-family:Arial;margin:0;background:#f5f6fa}
+.container{max-width:1100px;margin:auto;padding:15px}
+.card{background:#fff;padding:15px;border-radius:10px;box-shadow:0 2px 6px rgba(0,0,0,0.1);margin-bottom:10px}
+h1,h3{text-align:center;margin:5px}
+.controls{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+button{padding:6px 10px;border:none;border-radius:6px;background:#3498db;color:#fff;cursor:pointer}
+button:hover{background:#2980b9}
+input,select{padding:5px;border-radius:6px;border:1px solid #ccc}
+table{border-collapse:collapse;width:100%;font-size:12px;background:#fff}
+th,td{border:1px solid #ccc;padding:5px;text-align:center}
+th{background:#eee}
+.sticky{position:sticky;left:0;background:#fff}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:8px 15px;border-radius:6px;display:none}
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="card">
+<h1><input id="title" value="ELITE MEDICAL ACADEMY : KHAMMAM"></h1>
+<h3>
+<input id="examName" value="LONGTERM CT - 5">
+ | DATE: <span id="date"></span>
+ | MAX: <input id="maxMarks" value="720" style="width:60px">
+</h3>
+</div>
+
+<div class="card controls">
+<select id="examSelect" onchange="loadExam()"></select>
+<button onclick="newExam()">New Exam</button>
+<button onclick="deleteExam()">Delete Exam</button>
+
+<input type="file" id="csvFile">
+<button onclick="loadCSV()">Load Students (CSV)</button>
+
+<button onclick="addStudent()">Add Student</button>
+<button onclick="exportExcel()">Excel</button>
+<button onclick="exportCSV()">CSV</button>
+<button onclick="printReport()">PDF</button>
+
+<button onclick="backupData()">Backup</button>
+<input type="file" id="restoreFile" onchange="restoreData(this.files[0])">
+
+<button onclick="toggleCols()">⚙️</button>
+</div>
+
+<div id="colPanel" class="card" style="display:none">
+<label><input type="checkbox" checked data-col="bot"> Botany</label>
+<label><input type="checkbox" checked data-col="zoo"> Zoology</label>
+<label><input type="checkbox" checked data-col="phy"> Physics</label>
+<label><input type="checkbox" checked data-col="che"> Chemistry</label>
+</div>
+
+<div class="card" style="overflow:auto">
+<table>
+<thead>
+<tr>
+<th class="sticky">Roll</th>
+<th class="sticky">Name</th>
+<th>Botany</th><th>R</th>
+<th>Zoology</th><th>R</th>
+<th>Physics</th><th>R</th>
+<th>Chemistry</th><th>R</th>
+<th>Total</th><th>R</th>
+<th>❌</th>
+</tr>
+</thead>
+<tbody id="tbody"></tbody>
+</table>
+</div>
+
+</div>
+
+<div id="toast"></div>
+
+<script>
+document.getElementById("date").innerText=new Date().toLocaleDateString();
+
+const Store={
+get(){return JSON.parse(localStorage.getItem("exams")||"{}")},
+set(d){localStorage.setItem("exams",JSON.stringify(d))}
+};
+
+let exams=Store.get();
+let current="";
+let visible={bot:true,zoo:true,phy:true,che:true};
+
+function toast(msg){
+let t=document.getElementById("toast");
+t.innerText=msg;t.style.display="block";
+setTimeout(()=>t.style.display="none",2000);
+}
+
+function init(){
+if(!Object.keys(exams).length) exams["Exam 1"]=[];
+current=Object.keys(exams)[0];
+renderExamList();loadExam();
+}
+
+function renderExamList(){
+let s=document.getElementById("examSelect");s.innerHTML="";
+Object.keys(exams).forEach(e=>s.innerHTML+=`<option ${e===current?"selected":""}>${e}</option>`);
+}
+
+function loadExam(){current=document.getElementById("examSelect").value;render()}
+
+function newExam(){
+let n=prompt("Exam name?");if(!n)return;
+exams[n]=[];current=n;Store.set(exams);renderExamList();render();
+}
+
+function deleteExam(){
+if(!confirm("Delete exam?"))return;
+delete exams[current];Store.set(exams);init();
+}
+
+function students(){return exams[current]}
+
+function addStudent(){students().push({roll:"",name:"",bot:0,zoo:0,phy:0,che:0,ranks:{},total:0,totalRank:0});calc()}
+
+function upd(i,f,v){students()[i][f]=(f=="roll"||f=="name")?v:+v;calc()}
+
+function del(i){students().splice(i,1);render();Store.set(exams)}
+
+function calc(){
+students().forEach(s=>s.total=s.bot+s.zoo+s.phy+s.che);
+["bot","zoo","phy","che"].forEach(f=>{
+let s=[...students()].sort((a,b)=>b[f]-a[f]);
+s.forEach((x,i)=>x.ranks[f]=(i>0&&s[i][f]==s[i-1][f])?s[i-1].ranks[f]:i+1);
+});
+let s=[...students()].sort((a,b)=>b.total-a.total);
+s.forEach((x,i)=>x.totalRank=(i>0&&s[i].total==s[i-1].total)?s[i-1].totalRank:i+1);
+render();Store.set(exams);
+}
+
+function render(){
+let t=document.getElementById("tbody");t.innerHTML="";
+students().forEach((s,i)=>{
+t.innerHTML+=`
+<tr>
+<td><input value="${s.roll}" onchange="upd(${i},'roll',this.value)"></td>
+<td><input value="${s.name}" onchange="upd(${i},'name',this.value)"></td>
+${visible.bot?`<td><input type="number" value="${s.bot}" onchange="upd(${i},'bot',this.value)"></td><td>${s.ranks.bot||""}</td>`:""}
+${visible.zoo?`<td><input type="number" value="${s.zoo}" onchange="upd(${i},'zoo',this.value)"></td><td>${s.ranks.zoo||""}</td>`:""}
+${visible.phy?`<td><input type="number" value="${s.phy}" onchange="upd(${i},'phy',this.value)"></td><td>${s.ranks.phy||""}</td>`:""}
+${visible.che?`<td><input type="number" value="${s.che}" onchange="upd(${i},'che',this.value)"></td><td>${s.ranks.che||""}</td>`:""}
+<td>${s.total}</td><td>${s.totalRank||""}</td>
+<td><button onclick="del(${i})">X</button></td>
+</tr>`;
+});
+}
+
+function loadCSV(){
+let f=document.getElementById("csvFile").files[0];if(!f)return;
+if(!confirm("Replace existing data? Cancel = append")){}
+let r=new FileReader();
+r.onload=e=>{
+let lines=e.target.result.split("\n").filter(l=>l.trim());
+let h=lines[0].toLowerCase().split(",");
+let map={
+roll:h.findIndex(x=>x.includes("roll")),
+name:h.findIndex(x=>x.includes("name")),
+bot:h.findIndex(x=>x.includes("bot")),
+zoo:h.findIndex(x=>x.includes("zoo")),
+phy:h.findIndex(x=>x.includes("phy")),
+che:h.findIndex(x=>x.includes("che"))
+};
+if(confirm("Replace?")) exams[current]=[];
+for(let i=1;i<lines.length;i++){
+let p=lines[i].split(",");
+students().push({roll:p[map.roll],name:p[map.name],bot:+p[map.bot]||0,zoo:+p[map.zoo]||0,phy:+p[map.phy]||0,che:+p[map.che]||0,ranks:{},total:0,totalRank:0});
+}
+calc();toast("CSV Loaded");
+};
+r.readAsText(f);
+}
+
+function exportCSV(){
+let rows=[["Roll","Name","Bot","Zoo","Phy","Che","Total"]];
+students().forEach(s=>rows.push([s.roll,s.name,s.bot,s.zoo,s.phy,s.che,s.total]));
+let csv=rows.map(r=>r.join(",")).join("\n");
+let a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv]));a.download=current+".csv";a.click();
+}
+
+function exportExcel(){
+let rows=[["Roll","Name","Bot","Zoo","Phy","Che","Total"]];
+students().forEach(s=>rows.push([s.roll,s.name,s.bot,s.zoo,s.phy,s.che,s.total]));
+let ws=XLSX.utils.aoa_to_sheet(rows);let wb=XLSX.utils.book_new();
+XLSX.utils.book_append_sheet(wb,ws,current);
+XLSX.writeFile(wb,current+".xlsx");
+}
+
+function printReport(){window.print()}
+
+function backupData(){
+let data=localStorage.getItem("exams");
+let a=document.createElement("a");
+a.href=URL.createObjectURL(new Blob([data]));
+a.download="backup.json";a.click();toast("Backup saved");
+}
+
+function restoreData(file){
+let r=new FileReader();
+r.onload=e=>{
+let data=JSON.parse(e.target.result);
+if(confirm("Replace existing data?")) localStorage.setItem("exams",JSON.stringify(data));
+else{
+let ex=Store.get();Object.assign(ex,data);
+localStorage.setItem("exams",JSON.stringify(ex));
+}
+location.reload();
+};
+r.readAsText(file);
+}
+
+function toggleCols(){
+let p=document.getElementById("colPanel");
+p.style.display=p.style.display=="none"?"block":"none";
+document.querySelectorAll("#colPanel input").forEach(i=>{
+i.onchange=()=>{visible[i.dataset.col]=i.checked;render()}
+});
+}
+
+init();
+</script>
+
+</body>
+</html>
