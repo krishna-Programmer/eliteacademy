@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Student Exam Manager — User Guide</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+
+:root {
+  --bg:#f4f6fb; --card:#ffffff; --border:#e2e6f0;
+  --text:#1a1d2e; --muted:#6b7280;
+  --accent:#3b6ff5; --accent-lt:#eef2ff;
+  --green:#16a34a; --green-lt:#dcfce7;
+  --amber:#d97706; --amber-lt:#fef3c7;
+  --red:#dc2626;   --red-lt:#fee2e2;
+  --purple:#7c3aed;
+  --radius:12px; --shadow:0 2px 12px rgba(0,0,0,0.07);
+  --sidebar-w:248px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.7}
+
+/* sidebar */
+.sidebar{width:var(--sidebar-w);background:var(--card);border-right:1px solid var(--border);padding:20px 0 40px;position:fixed;top:0;left:0;bottom:0;overflow-y:auto;z-index:100;transition:transform .25s ease}
+.slogo{padding:0 18px 16px;border-bottom:1px solid var(--border);margin-bottom:12px}
+.slogo .aname{font-size:13px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.4px}
+.slogo .dtitle{font-size:11px;color:var(--muted);margin-top:3px}
+.nsec{padding:0 10px;margin-bottom:4px}
+.nlbl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;padding:8px 8px 3px;display:block}
+.nl{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:7px;color:var(--text);text-decoration:none;font-size:13px;font-weight:500;cursor:pointer;transition:background .15s,color .15s;user-select:none}
+.nl:hover{background:var(--accent-lt);color:var(--accent)}
+.nl.active{background:var(--accent-lt);color:var(--accent);font-weight:600}
+.nl .ic{width:18px;text-align:center;font-size:14px}
+
+/* mobile */
+.mob{display:none;position:fixed;top:0;left:0;right:0;background:var(--card);border-bottom:1px solid var(--border);padding:12px 16px;z-index:200;align-items:center;gap:12px}
+.mob .aname{font-weight:700;font-size:14px;color:var(--accent)}
+#mbtn{background:none;border:none;font-size:22px;cursor:pointer;padding:2px 6px;border-radius:6px;color:var(--text)}
+#mbtn:hover{background:var(--border)}
+.ovl{display:none;position:fixed;inset:0;background:rgba(0,0,0,.32);z-index:99}
+.ovl.on{display:block}
+
+/* main */
+.main{margin-left:var(--sidebar-w);padding:36px 44px 72px;max-width:900px}
+.sec{margin-bottom:52px;scroll-margin-top:20px}
+
+/* type */
+h1{font-size:24px;font-weight:700;line-height:1.3}
+h1 .sub{display:block;font-size:14px;font-weight:400;color:rgba(255,255,255,.78);margin-top:4px}
+h2{font-size:18px;font-weight:700;margin-bottom:16px;padding-bottom:10px;border-bottom:2px solid var(--border);display:flex;align-items:center;gap:9px}
+h3{font-size:14px;font-weight:700;margin:20px 0 8px}
+p{margin-bottom:10px}
+
+/* card */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 22px;margin-bottom:14px}
+
+/* hero */
+.hero{background:linear-gradient(135deg,#3b6ff5 0%,#7c3aed 100%);border-radius:var(--radius);padding:28px 28px 24px;color:#fff;margin-bottom:24px}
+.hero h1{color:#fff}
+.hero p{color:rgba(255,255,255,.88);margin-bottom:0}
+.pills{display:flex;flex-wrap:wrap;gap:7px;margin-top:14px}
+.pill{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:20px;padding:3px 12px;font-size:12px;font-weight:500}
+
+/* url box */
+.ubox{background:#1e1e2e;border-radius:9px;padding:14px 18px;font-family:'DM Mono',monospace;font-size:13px;color:#89dceb;margin:10px 0 14px;word-break:break-all;display:flex;align-items:center;gap:10px}
+.ubox .ui{font-size:18px;flex-shrink:0}
+
+/* callouts */
+.co{border-radius:9px;padding:13px 16px;margin-bottom:14px;display:flex;gap:10px;align-items:flex-start;font-size:13px}
+.co .ci{font-size:18px;line-height:1.4;flex-shrink:0}
+.co p{margin:0}
+.co.info{background:var(--accent-lt);border-left:3px solid var(--accent)}
+.co.tip{background:var(--green-lt);border-left:3px solid var(--green)}
+.co.warn{background:var(--amber-lt);border-left:3px solid var(--amber)}
+.co.danger{background:var(--red-lt);border-left:3px solid var(--red)}
+
+/* steps */
+.steps{list-style:none;margin:0 0 14px}
+.steps li{display:flex;gap:14px;margin-bottom:14px;align-items:flex-start}
+.sn{min-width:27px;height:27px;border-radius:50%;background:var(--accent);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.sb{flex:1}
+.sb strong{display:block;font-weight:600;margin-bottom:3px;font-size:14px}
+.sb p{margin:0;color:var(--muted);font-size:13px;line-height:1.6}
+.sb p+p{margin-top:4px}
+
+/* button badges */
+.b{display:inline-flex;align-items:center;padding:2px 10px;border-radius:5px;font-size:12px;font-weight:600;white-space:nowrap;vertical-align:middle;line-height:1.8}
+.bb{background:#3b6ff5;color:#fff}
+.bg{background:#16a34a;color:#fff}
+.ba{background:#d97706;color:#fff}
+.br{background:#dc2626;color:#fff}
+.bp{background:#7c3aed;color:#fff}
+.bn{background:#e5e7eb;color:#374151}
+
+/* code */
+code{font-family:'DM Mono',monospace;background:#f1f3f9;border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-size:12px;color:#be185d}
+
+/* csv block */
+.csv{background:#1e1e2e;color:#cdd6f4;border-radius:9px;padding:14px 18px;font-family:'DM Mono',monospace;font-size:12.5px;line-height:1.8;overflow-x:auto;margin-bottom:14px}
+.csv .h{color:#89dceb}
+.csv .v{color:#a6e3a1}
+.csv .c{color:#6c7086;font-style:italic}
+
+/* table */
+.t{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:16px}
+.t th{background:#f3f5fb;border:1px solid var(--border);padding:8px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)}
+.t td{border:1px solid var(--border);padding:8px 12px;vertical-align:top}
+.t tr:hover td{background:#fafbff}
+
+/* device row */
+.dr{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px}
+.dc{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:13px;flex:1;min-width:150px}
+.dc .di{font-size:24px}
+.dc strong{display:block;font-weight:600}
+.dc span{color:var(--muted);font-size:12px}
+
+/* scenario */
+.scen{background:#fafbff;border:1px solid var(--border);border-radius:9px;padding:14px 16px;margin-bottom:12px}
+.scen .st{font-weight:700;font-size:13px;margin-bottom:6px;color:var(--accent)}
+.scen p{margin:0;font-size:13px;color:var(--muted)}
+
+/* top btn */
+#topBtn{position:fixed;bottom:22px;right:22px;background:var(--accent);color:#fff;border:none;border-radius:50%;width:42px;height:42px;font-size:18px;cursor:pointer;display:none;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(59,111,245,.4);z-index:300}
+#topBtn:hover{opacity:.88}
+
+/* responsive */
+@media(max-width:768px){
+  .mob{display:flex}
+  .sidebar{transform:translateX(-100%)}
+  .sidebar.open{transform:translateX(0);box-shadow:4px 0 24px rgba(0,0,0,.18)}
+  .main{margin-left:0;padding:80px 18px 60px;max-width:100%}
+  h1{font-size:20px} h2{font-size:16px}
+  .hero{padding:20px 18px}
+  .t{font-size:12px} .t th,.t td{padding:6px 9px}
+  #topBtn{bottom:16px;right:16px}
+}
+@media(max-width:420px){.dc{min-width:100%}}
+@media print{.sidebar,.mob,#topBtn,.ovl{display:none!important}.main{margin:0;padding:20px;max-width:100%}.sec{page-break-inside:avoid}}
+</style>
+</head>
+<body>
+
+<div class="mob">
+  <button id="mbtn" onclick="toggleMenu()">☰</button>
+  <span class="aname">📋 Exam Manager Guide</span>
+</div>
+<div class="ovl" id="ovl" onclick="toggleMenu()"></div>
+
+<nav class="sidebar" id="sidebar">
+  <div class="slogo">
+    <div class="aname">📋 Exam Manager</div>
+    <div class="dtitle">User Guide — Elite Medical Academy</div>
+  </div>
+  <div class="nsec">
+    <span class="nlbl">Getting Started</span>
+    <a class="nl active" onclick="goTo('overview')"><span class="ic">🏠</span> What is this app?</a>
+    <a class="nl" onclick="goTo('open')"><span class="ic">🌐</span> How to open it</a>
+    <a class="nl" onclick="goTo('devices')"><span class="ic">📱</span> On phone / tablet</a>
+  </div>
+  <div class="nsec">
+    <span class="nlbl">Daily Use</span>
+    <a class="nl" onclick="goTo('exams')"><span class="ic">📁</span> Managing Exams</a>
+    <a class="nl" onclick="goTo('students')"><span class="ic">👤</span> Adding Students</a>
+    <a class="nl" onclick="goTo('csv')"><span class="ic">📄</span> Loading from a Sheet</a>
+    <a class="nl" onclick="goTo('scores')"><span class="ic">✏️</span> Entering Marks</a>
+    <a class="nl" onclick="goTo('ranks')"><span class="ic">🏆</span> Rankings &amp; Sorting</a>
+  </div>
+  <div class="nsec">
+    <span class="nlbl">Keeping Data Safe</span>
+    <a class="nl" onclick="goTo('cloud')"><span class="ic">☁️</span> Cloud Sync</a>
+    <a class="nl" onclick="goTo('backup')"><span class="ic">💾</span> Backup</a>
+    <a class="nl" onclick="goTo('restore')"><span class="ic">🔄</span> Restore</a>
+  </div>
+  <div class="nsec">
+    <span class="nlbl">Sharing &amp; Printing</span>
+    <a class="nl" onclick="goTo('export')"><span class="ic">📤</span> Export &amp; Print</a>
+  </div>
+  <div class="nsec">
+    <span class="nlbl">Reference</span>
+    <a class="nl" onclick="goTo('buttons')"><span class="ic">🔘</span> Every Button Explained</a>
+    <a class="nl" onclick="goTo('sheet-format')"><span class="ic">🗂️</span> Sheet / CSV Format</a>
+    <a class="nl" onclick="goTo('tips')"><span class="ic">💡</span> Tips &amp; Tricks</a>
+  </div>
+</nav>
+
+<main class="main">
+
+<!-- OVERVIEW -->
+<div class="sec" id="overview">
+  <div class="hero">
+    <h1>Student Exam Manager
+      <span class="sub">User Guide — Elite Medical Academy, Khammam</span>
+    </h1>
+    <p>Everything you need to manage exam marks, auto-calculate rankings, and share results across all your devices. No technical knowledge required.</p>
+    <div class="pills">
+      <span class="pill">☁ Auto Cloud Sync</span>
+      <span class="pill">📱 Phone &amp; Tablet Ready</span>
+      <span class="pill">🏆 Instant Rankings</span>
+      <span class="pill">📄 Load from Google Sheets</span>
+      <span class="pill">📊 Export to Excel</span>
+      <span class="pill">💾 Backup &amp; Restore</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>In simple words — what does this do?</h3>
+    <p>Think of this as a <strong>smart digital mark sheet</strong>. You open a webpage, enter student marks for Botany, Zoology, Physics, and Chemistry, and it <em>automatically</em> calculates each student's total and ranks them — subject-wise and overall.</p>
+    <p>Every change you make is <strong>saved immediately</strong> and sent to the cloud, so whether a colleague opens it on their office computer or you check it on your phone at home — everyone sees the same up-to-date data instantly.</p>
+    <p>There is nothing to install. No login is needed. Just open the link in any browser and start working.</p>
+  </div>
+
+  <div class="co info">
+    <span class="ci">ℹ️</span>
+    <p><strong>No technical knowledge needed.</strong> This guide uses plain, everyday language. If you can use WhatsApp or browse a website, you can use this app.</p>
+  </div>
+</div>
+
+
+<!-- HOW TO OPEN -->
+<div class="sec" id="open">
+  <h2>🌐 How to Open the App</h2>
+
+  <p>The app is a website — you open it just like you'd open any webpage. There is nothing to download or install.</p>
+
+  <div class="ubox">
+    <span class="ui">🔗</span>
+    https://krishna-programmer.github.io/eliteacademy/
+  </div>
+
+  <ul class="steps">
+    <li>
+      <div class="sn">1</div>
+      <div class="sb">
+        <strong>Open your browser</strong>
+        <p>On a phone, tap Chrome or Safari. On a computer, open Chrome, Edge, Firefox, or Safari — all work equally well.</p>
+      </div>
+    </li>
+    <li>
+      <div class="sn">2</div>
+      <div class="sb">
+        <strong>Go to the link above</strong>
+        <p>Tap the address bar at the top of your browser, type the link above, and press Go / Enter. You can also ask a colleague to send you the link on WhatsApp and tap it directly.</p>
+      </div>
+    </li>
+    <li>
+      <div class="sn">3</div>
+      <div class="sb">
+        <strong>Wait 2–3 seconds while it loads</strong>
+        <p>You will briefly see a blue <em>"Syncing…"</em> message in the top-right corner of the page. This means the app is fetching the latest data from the cloud. Once it disappears, everything is up to date and ready to use.</p>
+      </div>
+    </li>
+    <li>
+      <div class="sn">4</div>
+      <div class="sb">
+        <strong>You're in — start working</strong>
+        <p>The mark sheet appears with all previously entered data already loaded. No passwords, no setup.</p>
+      </div>
+    </li>
+  </ul>
+
+  <div class="co tip">
+    <span class="ci">💡</span>
+    <p><strong>Save it to your home screen like an app.</strong> On Android (Chrome): tap the three-dot menu → "Add to Home screen". On iPhone (Safari): tap the share button → "Add to Home Screen". From then on, a single tap on the icon opens the app directly — just like a regular app.</p>
+  </div>
+
+  <div class="co warn">
+    <span class="ci">⚠️</span>
+    <p><strong>You need internet to open it on a new device for the first time.</strong> After that, the app remembers your data locally — so even if the internet is slow or goes down briefly, it keeps working. Changes made offline sync automatically as soon as the internet returns.</p>
+  </div>
+</div>
+
+
+<!-- DEVICES -->
+<div class="sec" id="devices">
+  <h2>📱 Using on Phone, Tablet &amp; Computer</h2>
+
+  <p>The app works on every device. Here is what to expect and how to get the best experience on each:</p>
+
+  <div class="dr">
+    <div class="dc">
+      <span class="di">🖥️</span>
+      <div><strong>Computer / Laptop</strong><span>Best experience. Full table visible, all buttons in one row.</span></div>
+    </div>
+    <div class="dc">
+      <span class="di">📲</span>
+      <div><strong>Tablet</strong><span>Works great. Use landscape (horizontal) mode to see more columns.</span></div>
+    </div>
+    <div class="dc">
+      <span class="di">📱</span>
+      <div><strong>Mobile Phone</strong><span>Fully usable. Swipe the table left and right to see all columns.</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Tips for using on a phone</h3>
+    <ul style="padding-left:18px;color:var(--muted);font-size:13px;line-height:1.9">
+      <li><strong>Swipe left/right on the mark sheet</strong> to see all columns — they are all there, the table just scrolls sideways.</li>
+      <li>Tap <span class="b bn">⚙️</span> at the top to <strong>hide columns</strong> you don't currently need — this makes the table narrower and easier to read on a small screen.</li>
+      <li>Use <strong>View Mode</strong> (the default when you open) just for reading. Switch to <strong>Edit Mode</strong> only when you need to type marks.</li>
+      <li>Rotate your phone to <strong>landscape (horizontal)</strong> orientation for a wider view of the table.</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h3>All devices show the same data automatically</h3>
+    <p>Because the app saves to the cloud, <strong>every device always has the latest marks</strong>. If a teacher enters marks on the office computer right now, you will see those marks on your phone the moment you open the app — no copying, no sharing files, no waiting.</p>
+  </div>
+
+  <div class="co info">
+    <span class="ci">ℹ️</span>
+    <p><strong>Works even without internet.</strong> If your internet goes down while working, the app continues using the data already on your device. When the internet returns, it syncs everything automatically — no data is lost.</p>
+  </div>
+</div>
+
+
+<!-- MANAGING EXAMS -->
+<div class="sec" id="exams">
+  <h2>📁 Managing Exams</h2>
+
+  <p>You can store many different exams in one place — CT-1, CT-2, Longterm, Half Yearly — each completely separate. Think of each exam as its own separate page in a register book.</p>
+
+  <div class="card">
+    <h3>Switching between exams</h3>
+    <p>At the top left of the page there is a <strong>dropdown box</strong> showing the name of the exam you are currently looking at. Tap or click it to see a list of all your exams. Select any one — the mark sheet changes instantly.</p>
+  </div>
+
+  <div class="card">
+    <h3>Creating a new exam</h3>
+    <ul class="steps" style="margin-bottom:0">
+      <li>
+        <div class="sn">1</div>
+        <div class="sb">
+          <strong>Click <span class="b bb">+ New</span></strong>
+          <p>A small pop-up box appears asking you to type a name.</p>
+        </div>
+      </li>
+      <li>
+        <div class="sn">2</div>
+        <div class="sb">
+          <strong>Type the exam name and click OK</strong>
+          <p>Use a clear name like <em>CT-2 March 2025</em> or <em>Longterm CT-5</em>. The new, empty exam opens right away.</p>
+        </div>
+      </li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h3>Deleting an exam</h3>
+    <p>Select the exam from the dropdown, then click <span class="b br">Delete</span>. A warning message will appear asking you to confirm. Click OK <strong>only if you are absolutely sure</strong> — this removes all student data in that exam permanently.</p>
+    <div class="co danger" style="margin-top:12px;margin-bottom:0">
+      <span class="ci">🚨</span>
+      <p><strong>Always take a Backup before deleting anything.</strong> See the Backup section below. It takes about 5 seconds and means you can always recover the data if you change your mind.</p>
+    </div>
+  </div>
+</div>
+
+
+<!-- ADDING STUDENTS -->
+<div class="sec" id="students">
+  <h2>👤 Adding Students</h2>
+
+  <div class="co info">
+    <span class="ci">ℹ️</span>
+    <p><strong>Every student must have a unique Student ID.</strong> This ID is like a permanent roll number — it's how the app recognises each student and keeps their data correct across all updates. Use your academy's existing roll number or admission number (for example: <code>EMA-001</code>). The student's name and marks are optional, but the ID is always required.</p>
+  </div>
+
+  <p>There are two ways to add students: one by one (good for a handful of students), or all at once by uploading a Google Sheet (recommended when you have many students — see the next section).</p>
+
+  <div class="card">
+    <h3>Adding one student at a time</h3>
+    <ul class="steps" style="margin-bottom:0">
+      <li>
+        <div class="sn">1</div>
+        <div class="sb">
+          <strong>Switch to Edit Mode</strong>
+          <p>Click the <span class="b bp">✏ Edit Mode</span> button at the top. The mark sheet now shows small typing boxes in each cell.</p>
+        </div>
+      </li>
+      <li>
+        <div class="sn">2</div>
+        <div class="sb">
+          <strong>Click <span class="b bn">+ Student</span></strong>
+          <p>A pop-up asks for the Student ID. Type the roll number (e.g. <code>EMA-042</code>) and click OK.</p>
+        </div>
+      </li>
+      <li>
+        <div class="sn">3</div>
+        <div class="sb">
+          <strong>Type the name and marks</strong>
+          <p>A new row appears at the bottom. Click the Name cell and type the student's name. Then click each subject cell and type the mark.</p>
+        </div>
+      </li>
+      <li>
+        <div class="sn">4</div>
+        <div class="sb">
+          <strong>Total and ranks update by themselves</strong>
+          <p>The moment you finish typing a mark and click elsewhere (or press Tab on a keyboard), the Total and all Rank columns recalculate automatically. Nothing else to do — it's all saved too.</p>
+        </div>
+      </li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h3>Removing a student</h3>
+    <p>In Edit Mode, each student row has a small <span class="b br">✕</span> button at the far right end of the row. Tap it to remove that student. All other students' ranks will update automatically.</p>
+  </div>
+
+  <div class="co warn">
+    <span class="ci">⚠️</span>
+    <p>If you try to add a student with an ID that already exists in this exam, the app will warn you and not add a duplicate. Each student must have a different, unique ID.</p>
+  </div>
+</div>
+
+
+<!-- LOADING FROM SHEET / CSV -->
+<div class="sec" id="csv">
+  <h2>📄 Loading Students from a Google Sheet</h2>
+
+  <p>Instead of typing students one by one, you can prepare a list in <strong>Google Sheets</strong> (or Microsoft Excel) and load it into the app all at once. This is the recommended method for large batches.</p>
+
+  <div class="co info">
+    <span class="ci">ℹ️</span>
+    <p><strong>Smart update — never worry about loading twice:</strong> If you load a sheet and a student's ID already exists in the app, <em>only the columns present in that sheet are updated</em> — nothing else is touched. New IDs are added as new students. Rows with no ID are skipped. You can safely load the same sheet multiple times.</p>
+  </div>
+
+  <div class="card">
+    <h3>Step 1 — Prepare your Google Sheet</h3>
+    <ul class="steps" style="margin-bottom:0">
+      <li>
+        <div class="sn">1</div>
+        <div class="sb">
+          <strong>Open Google Sheets on any device</strong>
+          <p>Go to <em>sheets.google.com</em> and create a new sheet, or open an existing one.</p>
+        </div>
+      </li>
+      <li>
+        <div class="sn">2</div>
+        <div class="sb">
+          <strong>Type the column headings in the first row</strong>
+          <p>In the very first row, type the following words — one per cell — starting from cell A1:<br>
+          <code>id</code> &nbsp; <code>name</code> &nbsp; <code>bot</code> &nbsp; <code>zoo</code> &nbsp; <code>phy</code> &nbsp; <code>che</code></p>
+          <p>You don't need all of them. The only one that is required is <code>id</code>. Only add the columns you actually have data for.</p>
+        </div>
+      </li>
+      <li>
+        <div class="sn">3</div>
+        <div class="sb">
+          <strong>Fill in student data from row 2 onwards</strong>
+          <p>One student per row. The ID column must always have a value. Other columns can be left empty.</p>
+        </div>
+      </li>
+      <li>
+        <div class="sn">4</div>
+        <div class="sb">
+          <strong>Download the sheet as a CSV file</strong>
+          <p>In Google Sheets, click <strong>File</strong> at the top → <strong>Download</strong> → <strong>Comma-separated values (.csv)</strong>. A file will download to your device's Downloads folder.</p>
+        </div>
+      </li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h3>Step 2 — Load the file into the app</h3>
+    <ul class="steps" style="margin-bottom:0">
+      <li>
+        <div class="sn">1</div>
+        <div class="sb">
+          <strong>Click <span class="b bn">Load CSV</span> in the toolbar</strong>
+          <p>A file browser opens — exactly like when you attach a photo on WhatsApp.</p>
+        </div>
+      </li>
+      <li>
+        <div class="sn">2</div>
+        <div class="sb">
+          <strong>Find and select the file you just downloaded</strong>
+          <p>On Android: it's in your <em>Downloads</em> folder. On iPhone: tap <em>Files</em> → <em>Downloads</em>. On a computer: check your <em>Downloads</em> folder.</p>
+        </div>
+      </li>
+      <li>
+        <div class="sn">3</div>
+        <div class="sb">
+          <strong>Check the result message at the top right</strong>
+          <p>A message appears, for example: <em>12 added · 3 updated · 0 skipped ✓</em> — this tells you exactly what happened: how many new students were added, how many existing ones were updated, and how many rows were skipped (usually because they had no ID).</p>
+        </div>
+      </li>
+    </ul>
+  </div>
+
+  <h3>Example: Registering students at the start of a new exam (names only)</h3>
+  <div class="csv">
+<span class="h">id,name</span>
+<span class="v">EMA-001,Arjun Reddy</span>
+<span class="v">EMA-002,Priya Sharma</span>
+<span class="v">EMA-003,Kiran Babu</span>
+  </div>
+
+  <h3>Example: Loading marks after the exam (using the same IDs)</h3>
+  <p>The app finds each student by their ID and fills in only their marks. Names and other details stay unchanged.</p>
+  <div class="csv">
+<span class="h">id,bot,zoo,phy,che</span>
+<span class="v">EMA-001,85,92,78,88</span>
+<span class="v">EMA-002,91,87,95,89</span>
+<span class="v">EMA-003,76,80,70,74</span>
+  </div>
+
+  <h3>Example: Correcting just one subject's marks</h3>
+  <p>Load a sheet with only the ID and the subject you need to fix. Everything else stays exactly as it was.</p>
+  <div class="csv">
+<span class="h">id,bot</span>
+<span class="v">EMA-001,90</span>   <span class="c">← only Botany mark is changed for this student</span>
+  </div>
+
+  <div class="co tip">
+    <span class="ci">💡</span>
+    <p>The order of columns in your sheet doesn't matter. The heading words don't need to be exactly right either — the app also accepts <code>botany</code>, <code>zoology</code>, <code>physics</code>, <code>chemistry</code> and even capital letters like <code>BOT</code> or <code>Bot</code>.</p>
+  </div>
+</div>
+
+
+<!-- ENTERING MARKS -->
+<div class="sec" id="scores">
+  <h2>✏️ Entering and Correcting Marks</h2>
+
+  <p>You can type marks directly into the mark sheet while in Edit Mode. Every change is saved automatically the moment you move to the next cell — there is no Save button needed.</p>
+
+  <div class="card">
+    <h3>How to enter marks</h3>
+    <ul class="steps" style="margin-bottom:0">
+      <li>
+        <div class="sn">1</div>
+        <div class="sb">
+          <strong>Click <span class="b bp">✏ Edit Mode</span></strong>
+          <p>This button is in the toolbar at the top. Once you click it, the mark sheet shows small typing boxes in each mark cell.</p>
+        </div>
+      </li>
+      <li>
+        <div class="sn">2</div>
+        <div class="sb">
+          <strong>Click on a cell and type the mark</strong>
+          <p>Tap or click any mark cell. Type the number. On a keyboard, press <strong>Tab</strong> to jump to the next cell, or <strong>Enter</strong> to move down.</p>
+        </div>
+      </li>
+      <li>
+        <div class="sn">3</div>
+        <div class="sb">
+          <strong>The total and ranks update instantly</strong>
+          <p>The moment you move away from a cell, the Total and Rank columns recalculate automatically. Your change is saved to the cloud at the same time — you will see a brief "Syncing…" then "Synced ✓" message.</p>
+        </div>
+      </li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h3>Correcting a mark that was entered wrong</h3>
+    <p>In Edit Mode, simply click the wrong mark, delete it, type the correct number, and click elsewhere. The total and ranks will fix themselves immediately. This works at any time — even months after the marks were first entered.</p>
+  </div>
+
+  <div class="co info">
+    <span class="ci">ℹ️</span>
+    <p><strong>You cannot type in the Total column</strong> — it is always auto-calculated as Botany + Zoology + Physics + Chemistry. Only the four subject marks need to be entered.</p>
+  </div>
+
+  <div class="co warn">
+    <span class="ci">⚠️</span>
+    <p><strong>Try not to edit on two devices at exactly the same time.</strong> If two people are both making changes simultaneously, only the last change to be saved will be kept. Best practice: have one person enter marks at a time, or split subjects (one person enters Botany &amp; Zoology, another enters Physics &amp; Chemistry) and both sync when done.</p>
+  </div>
+</div>
+
+
+<!-- RANKINGS & SORTING -->
+<div class="sec" id="ranks">
+  <h2>🏆 Rankings &amp; Sorting</h2>
+
+  <div class="card">
+    <h3>How ranks work</h3>
+    <p>Ranks are calculated <strong>automatically</strong> the moment any mark changes. You never have to calculate or type rank numbers yourself.</p>
+    <p>There are <strong>five rank columns</strong>: one for each subject (Botany, Zoology, Physics, Chemistry) and one for the Overall Total. Each is independent — a student can be Rank 1 in Botany but Rank 5 overall.</p>
+    <p><strong>Tied marks are handled fairly:</strong> If two students both score the highest in a subject, they both get Rank 1, and the next student gets Rank 3 (not Rank 2) — exactly like a competitive exam.</p>
+  </div>
+
+  <div class="card">
+    <h3>What the colours mean</h3>
+    <table class="t" style="margin-bottom:0">
+      <thead><tr><th>Colour</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td style="background:#fef3c7;font-weight:700">🟡 Yellow / Gold</td><td>Rank 1 — Top scorer in that subject or overall</td></tr>
+        <tr><td style="background:#e0f2fe">🔵 Light Blue</td><td>Rank 2</td></tr>
+        <tr><td style="background:#f0fdf4">🟢 Light Green</td><td>Rank 3</td></tr>
+        <tr><td>No colour</td><td>Rank 4 and below</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3>Sorting the table by rank</h3>
+    <p>To see the top performers at the top of the table, <strong>tap or click any rank column heading</strong>:</p>
+    <ul style="padding-left:18px;color:var(--muted);font-size:13px;line-height:1.9">
+      <li>Tap <strong>B.Rank</strong> → sorts by Botany rank (best scorer at top)</li>
+      <li>Tap <strong>Z.Rank</strong> → sorts by Zoology rank</li>
+      <li>Tap <strong>P.Rank</strong> → sorts by Physics rank</li>
+      <li>Tap <strong>C.Rank</strong> → sorts by Chemistry rank</li>
+      <li>Tap <strong>Rank</strong> (last column) → sorts by Overall Total rank</li>
+    </ul>
+    <p style="margin-top:10px">The sorted column turns <strong style="color:var(--accent)">blue</strong> and shows a ▼ arrow (best at top) or ▲ (reversed). Tap the same column again to flip the order. Tap a different column to sort by that one instead.</p>
+    <p style="color:var(--muted);font-size:13px;margin-top:8px">Note: sorting only changes how the table looks on screen — it does not change the actual data or the ranks themselves. Everything is still calculated correctly.</p>
+  </div>
+
+  <div class="card">
+    <h3>Hiding columns to simplify the view</h3>
+    <p>If the table feels too wide on your phone, tap <span class="b bn">⚙️</span> to open the column panel. Untick any columns you don't need right now. For example, hide the individual subject rank columns and keep only the Total Rank column — this makes the table much easier to read on small screens. Hidden columns are also left out of Excel and CSV exports.</p>
+  </div>
+</div>
+
+
+<!-- CLOUD SYNC -->
+<div class="sec" id="cloud">
+  <h2>☁️ Cloud Sync — How Your Data Stays Safe &amp; Shared</h2>
+
+  <p>Every time you make a change — adding a student, entering a mark, anything — the app automatically saves that change to a secure cloud server. This is what keeps all devices in sync and protects your data.</p>
+
+  <div class="card">
+    <h3>What happens automatically (nothing you need to do)</h3>
+    <ul style="padding-left:18px;color:var(--muted);font-size:13px;line-height:1.9">
+      <li><strong>When you open the app:</strong> It loads data already stored on your device instantly (so the page opens fast), then quietly checks the cloud for any newer data. If newer data is found — for example, a colleague entered marks on another device — it updates your view automatically.</li>
+      <li><strong>Every time you make a change:</strong> The change is pushed to the cloud within a few seconds. You will see a brief <em style="color:#1d4ed8">Syncing…</em> message appear, followed by <em style="color:#166534">Synced ✓</em>.</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h3>The <span class="b bn">☁ Sync</span> button — when should you press it?</h3>
+    <p>In most situations you will never need to press this — sync happens on its own. But press it in these situations:</p>
+    <div class="scen">
+      <div class="st">Situation 1 — You just got your internet back</div>
+      <p>If you entered marks without internet and the connection just returned, press <span class="b bn">☁ Sync</span> to push all your changes to the cloud immediately.</p>
+    </div>
+    <div class="scen">
+      <div class="st">Situation 2 — Before handing over to a colleague</div>
+      <p>Press <span class="b bn">☁ Sync</span> first to make sure your colleague sees your latest data the moment they open the app on their device.</p>
+    </div>
+    <div class="scen" style="margin-bottom:0">
+      <div class="st">Situation 3 — You see "Sync failed ✗"</div>
+      <p>This usually means internet was unavailable at that moment. Your data is safe on your device. Once the internet is back, press <span class="b bn">☁ Sync</span> to try again.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Understanding the status messages</h3>
+    <table class="t" style="margin-bottom:0">
+      <thead><tr><th>Message</th><th>What it means</th><th>What to do</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><span style="color:#1d4ed8;font-weight:600">Syncing…</span></td>
+          <td>Saving to the cloud right now</td>
+          <td>Wait a moment. Nothing to do.</td>
+        </tr>
+        <tr>
+          <td><span style="color:#166534;font-weight:600">Synced ✓</span></td>
+          <td>Cloud is up to date. All good.</td>
+          <td>Nothing to do.</td>
+        </tr>
+        <tr>
+          <td><span style="color:#991b1b;font-weight:600">Sync failed ✗</span></td>
+          <td>Could not reach the cloud — usually means no internet at that moment</td>
+          <td>Check your connection. Press <span class="b bn">☁ Sync</span> when back online. Data is safe on your device.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="co warn">
+    <span class="ci">⚠️</span>
+    <p><strong>Avoid editing on two devices at exactly the same moment.</strong> If two people save different things at precisely the same second, only one will go through. To avoid this, have one person enter marks at a time. If two people must work simultaneously, split subjects between them and both press <span class="b bn">☁ Sync</span> when done.</p>
+  </div>
+</div>
+
+
+<!-- BACKUP -->
+<div class="sec" id="backup">
+  <h2>💾 Backup — Saving a Safety Copy on Your Device</h2>
+
+  <p>Cloud sync keeps your data safe online, but a <strong>Backup</strong> is an extra copy saved directly on your phone or computer — like a photocopy of the register that you keep in a drawer. If something ever goes wrong, you can restore from this copy.</p>
+
+  <div class="co danger">
+    <span class="ci">🚨</span>
+    <p><strong>Always take a Backup before:</strong> deleting an exam, loading a large file of marks onto existing data, or restoring an old backup. It takes about 5 seconds and can save hours of re-work.</p>
+  </div>
+
+  <div class="card">
+    <h3>How to take a Backup — step by step</h3>
+    <ul class="steps" style="margin-bottom:0">
+      <li>
+        <div class="sn">1</div>
+        <div class="sb">
+          <strong>Click <span class="b ba">Backup</span> in the toolbar at the top</strong>
+          <p>A file is downloaded to your device immediately. No form, no settings — just one click.</p>
+        </div>
+      </li>
+      <li>
+        <div class="sn">2</div>
+        <div class="sb">
+          <strong>The file is saved to your Downloads folder automatically</strong>
+          <p>The file is named something like <code>exam-backup-2025-06-15.json</code> with today's date in the name. You don't need to understand what ".json" means — just treat it as your backup file.</p>
+          <p>The Backup file contains <strong>all your exams</strong>, not just the current one — so one backup protects everything.</p>
+        </div>
+      </li>
+      <li>
+        <div class="sn">3</div>
+        <div class="sb">
+          <strong>Move it somewhere safe for easy retrieval</strong>
+          <p>Send it to yourself on WhatsApp, email it to yourself, or move it to Google Drive. Keep backups from the last few sessions so you can go back in time if needed.</p>
+        </div>
+      </li>
+    </ul>
+  </div>
+
+  <div class="co tip">
+    <span class="ci">💡</span>
+    <p><strong>Make backing up a habit.</strong> A quick click of <span class="b ba">Backup</span> at the end of each mark entry session means you always have a recent copy to fall back on. Takes 5 seconds.</p>
+  </div>
+</div>
+
+
+<!-- RESTORE -->
+<div class="sec" id="restore">
+  <h2>🔄 Restore — Getting Your Data Back from a Backup</h2>
+
+  <p>If something goes wrong — data accidentally deleted, a mistake during a large load, or any other problem — you can bring back your data from a Backup file you saved earlier. This is simple and takes less than a minute.</p>
+
+  <div class="card">
+    <h3>How to restore from a backup — step by step</h3>
+    <ul class="steps" style="margin-bottom:0">
+      <li>
+        <div class="sn">1</div>
+        <div class="sb">
+          <strong>Find your backup file</strong>
+          <p>Locate the backup file you saved earlier — from your Downloads folder, Google Drive, WhatsApp, or email. The file name ends with <code>.json</code>.</p>
+        </div>
+      </li>
+      <li>
+        <div class="sn">2</div>
+        <div class="sb">
+          <strong>Click <span class="b ba">Restore</span> in the toolbar</strong>
+          <p>A file browser opens — the same kind that opens when you attach a file on WhatsApp.</p>
+        </div>
+      </li>
+      <li>
+        <div class="sn">3</div>
+        <div class="sb">
+          <strong>Select your backup file</strong>
+          <p>Navigate to where you saved it and tap or click on the file name to select it.</p>
+        </div>
+      </li>
+      <li>
+        <div class="sn">4</div>
+        <div class="sb">
+          <strong>Choose how to restore</strong>
+          <p>A question appears with two choices:</p>
+          <p><strong>Click OK → Replace everything:</strong> Wipes all current data and brings back exactly what was in the backup. Use this when something went badly wrong and you want to go back to a previous state.</p>
+          <p><strong>Click Cancel → Add alongside (Merge):</strong> Keeps all your current data and also brings in the exams from the backup. If both have an exam with the same name, the backup version takes over. Use this when you want to recover just one or two exams without losing everything else.</p>
+        </div>
+      </li>
+      <li>
+        <div class="sn">5</div>
+        <div class="sb">
+          <strong>Done — data is restored</strong>
+          <p>The page refreshes and shows the restored data. A green <em>"Backup restored ✓"</em> message confirms it worked. The restored data is also pushed to the cloud automatically — so all other devices will see the restored data the next time they open the app.</p>
+        </div>
+      </li>
+    </ul>
+  </div>
+
+  <div class="co info">
+    <span class="ci">ℹ️</span>
+    <p><strong>Not sure which option to pick?</strong> Choose <strong>Cancel (Add alongside / Merge)</strong> — it's the safer choice because it doesn't delete any of your current data. You can always do a full Replace later if needed.</p>
+  </div>
+
+  <div class="co warn">
+    <span class="ci">⚠️</span>
+    <p><strong>Restoring affects all devices.</strong> Because the restored data is pushed to the cloud, every device that opens the app afterwards will see the restored data. Make sure this is what you want before you confirm.</p>
+  </div>
+</div>
+
+
+<!-- EXPORT & PRINT -->
+<div class="sec" id="export">
+  <h2>📤 Exporting &amp; Printing</h2>
+
+  <p>Save the mark sheet as an Excel file, download it as a simple spreadsheet file, or print it as a PDF — for records, sharing with management, or printing for students and parents.</p>
+
+  <div class="card">
+    <h3>Export to Excel (for records or sharing)</h3>
+    <ul class="steps" style="margin-bottom:0">
+      <li>
+        <div class="sn">1</div>
+        <div class="sb">
+          <strong>Click <span class="b bg">Excel</span></strong>
+          <p>A file is downloaded to your device straight away. The file name is the exam name (e.g. <em>LT CT-5.xlsx</em>).</p>
+        </div>
+      </li>
+      <li>
+        <div class="sn">2</div>
+        <div class="sb">
+          <strong>Open it in Excel or Google Sheets</strong>
+          <p>On Android: tap the downloaded file. On iPhone: tap Files → Downloads → the file. On a computer: double-click it in your Downloads folder. It opens in any spreadsheet app.</p>
+        </div>
+      </li>
+    </ul>
+    <div class="co tip" style="margin-top:12px;margin-bottom:0">
+      <span class="ci">💡</span>
+      <p>Only the columns you have visible on screen are included in the Excel file. If you've hidden some columns using <span class="b bn">⚙️</span>, those won't appear in the export. You can use this to create a clean, simple export with only the columns you need.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Print as PDF (for physical copies or WhatsApp sharing)</h3>
+    <ul class="steps" style="margin-bottom:0">
+      <li>
+        <div class="sn">1</div>
+        <div class="sb">
+          <strong>Prepare the view first</strong>
+          <p>Sort by the Total Rank column (tap <strong>Rank</strong> heading) so the best students appear first. Use <span class="b bn">⚙️</span> to hide any columns you don't want on paper. Make sure you are in <span class="b bp">👁 View Mode</span> (not Edit Mode) so typing boxes don't show up in the printout.</p>
+        </div>
+      </li>
+      <li>
+        <div class="sn">2</div>
+        <div class="sb">
+          <strong>Click <span class="b bn">PDF</span></strong>
+          <p>Your browser's Print window opens. The toolbar buttons disappear — only the clean mark sheet is shown.</p>
+        </div>
+      </li>
+      <li>
+        <div class="sn">3</div>
+        <div class="sb">
+          <strong>Save as PDF or print</strong>
+          <p>In the print window, select <em>"Save as PDF"</em> to get a PDF file you can share on WhatsApp or email. Or select your printer to print directly. Choose A4 paper size for the best fit.</p>
+        </div>
+      </li>
+    </ul>
+  </div>
+</div>
+
+
+<!-- ALL BUTTONS REFERENCE -->
+<div class="sec" id="buttons">
+  <h2>🔘 Every Button — Plain English Reference</h2>
+
+  <table class="t">
+    <thead>
+      <tr><th>Button</th><th>What it does</th><th>When to use it</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><span class="b bb">+ New</span></td><td>Creates a brand new exam</td><td>At the start of each new test (CT-1, Half Yearly, etc.)</td></tr>
+      <tr><td><span class="b br">Delete</span></td><td>Permanently deletes the selected exam and all its data</td><td>Only when you no longer need an exam. <strong>Take a Backup first.</strong></td></tr>
+      <tr><td><span class="b bn">+ Student</span></td><td>Adds one new student. Asks for their ID first.</td><td>When adding a few students one at a time, in Edit Mode</td></tr>
+      <tr><td><span class="b bn">Load CSV</span></td><td>Loads students and/or marks from a Google Sheets file you've downloaded</td><td>For adding many students at once or bulk mark entry</td></tr>
+      <tr><td><span class="b bg">Excel</span></td><td>Downloads the mark sheet as an Excel file</td><td>For records, sharing with management, or opening in Google Sheets</td></tr>
+      <tr><td><span class="b bg">CSV</span></td><td>Downloads the mark sheet as a simple text file</td><td>For importing into other software or for advanced use</td></tr>
+      <tr><td><span class="b bn">PDF</span></td><td>Opens the print window to save as PDF or print on paper</td><td>For printing mark sheets or sharing as a PDF file</td></tr>
+      <tr><td><span class="b ba">Backup</span></td><td>Downloads a full copy of all exam data to your device</td><td>Regularly — especially before making big changes</td></tr>
+      <tr><td><span class="b ba">Restore</span></td><td>Loads a previously saved backup file back into the app</td><td>When you need to undo a mistake or recover deleted data</td></tr>
+      <tr><td><span class="b bn">☁ Sync</span></td><td>Pushes all your data to the cloud right now</td><td>After working without internet, or before switching to another device</td></tr>
+      <tr><td><span class="b bp">✏ Edit Mode</span></td><td>Switches the table so you can type marks. Click again to go back to view mode.</td><td>Any time you need to enter or change marks</td></tr>
+      <tr><td><span class="b bn">⚙️</span></td><td>Opens a panel to show or hide individual columns</td><td>To simplify the table on small screens, or before printing/exporting</td></tr>
+      <tr><td><span class="b br">✕</span> <em>(in a row)</em></td><td>Deletes that one student from the exam</td><td>Edit Mode only. Cannot be undone — take a Backup first.</td></tr>
+      <tr><td><em>B.Rank / Z.Rank / P.Rank / C.Rank / Rank</em> headings</td><td>Tap to sort the table by that subject's rank. Tap again to reverse.</td><td>To see top performers, before printing, or before exporting</td></tr>
+    </tbody>
+  </table>
+</div>
+
+
+<!-- SHEET FORMAT -->
+<div class="sec" id="sheet-format">
+  <h2>🗂️ Google Sheet / CSV Format Reference</h2>
+
+  <p>If you prepare your own sheet to load into the app, here is everything you need to know.</p>
+
+  <div class="card">
+    <h3>What your sheet must look like</h3>
+    <p><strong>Row 1</strong> = headings. <strong>Row 2 onwards</strong> = one student per row.</p>
+    <div class="csv">
+<span class="h">id,name,bot,zoo,phy,che</span>
+<span class="v">EMA-001,Arjun Reddy,85,92,78,88</span>
+<span class="v">EMA-002,Priya Sharma,91,87,95,89</span>
+<span class="v">EMA-003,Kiran Babu,76,80,70,74</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Accepted column headings</h3>
+    <table class="t" style="margin-bottom:0">
+      <thead><tr><th>Column</th><th>Headings the app accepts</th><th>Required?</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Student ID</strong></td><td><code>id</code> &nbsp; <code>roll</code> &nbsp; <code>rollno</code> &nbsp; <code>student_id</code></td><td>✅ Yes — must not be blank</td></tr>
+        <tr><td>Student Name</td><td><code>name</code> &nbsp; <code>student_name</code></td><td>Optional</td></tr>
+        <tr><td>Botany marks</td><td><code>bot</code> &nbsp; <code>botany</code></td><td>Optional</td></tr>
+        <tr><td>Zoology marks</td><td><code>zoo</code> &nbsp; <code>zoology</code></td><td>Optional</td></tr>
+        <tr><td>Physics marks</td><td><code>phy</code> &nbsp; <code>physics</code></td><td>Optional</td></tr>
+        <tr><td>Chemistry marks</td><td><code>che</code> &nbsp; <code>chem</code> &nbsp; <code>chemistry</code></td><td>Optional</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3>Simple rules</h3>
+    <ul style="padding-left:18px;color:var(--muted);font-size:13px;line-height:2">
+      <li>Every student's ID must be filled in. Rows with no ID are skipped.</li>
+      <li>Column order doesn't matter. The app reads them by name, not position.</li>
+      <li>Capital or small letters don't matter: <code>BOT</code>, <code>Bot</code>, <code>bot</code> are all accepted.</li>
+      <li>If a mark column is empty for a student, it defaults to 0.</li>
+      <li>Do not add Total or Rank columns — the app calculates these itself.</li>
+      <li>Extra columns not in the list above (e.g. attendance) are silently ignored.</li>
+    </ul>
+  </div>
+</div>
+
+
+<!-- TIPS -->
+<div class="sec" id="tips">
+  <h2>💡 Tips &amp; Tricks</h2>
+
+  <div class="card">
+    <h3>📋 Recommended workflow for every new exam</h3>
+    <ol style="padding-left:18px;font-size:13px;line-height:2.2;color:var(--muted)">
+      <li>Click <span class="b bb">+ New</span> and give the exam a clear name (e.g. <em>CT-2 March 2025</em>)</li>
+      <li>Load student names and IDs from Google Sheets using <span class="b bn">Load CSV</span></li>
+      <li>After the exam, enter marks into the same Google Sheet and load it again</li>
+      <li>Review rankings — sort by the <strong>Rank</strong> column to see top performers</li>
+      <li>Export to Excel for records, or print as PDF for notice boards and parents</li>
+      <li>Click <span class="b ba">Backup</span> to save a safety copy to your device</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <h3>📊 Reuse the same student list for every exam</h3>
+    <p>At the start of the academic year, create your student list (ID + Name) in Google Sheets once. For every new exam, load that same sheet — students are added in seconds. Then load marks separately when ready. You never need to retype names.</p>
+  </div>
+
+  <div class="card">
+    <h3>📱 Fastest way to enter marks on a phone</h3>
+    <p>Tapping small cells in a table on a phone can be fiddly. Instead: fill the marks into Google Sheets on your phone, download as CSV, then load into the app. This is much faster than cell-by-cell typing on a small screen.</p>
+  </div>
+
+  <div class="card">
+    <h3>🖨️ Getting a clean printout</h3>
+    <ol style="padding-left:18px;font-size:13px;line-height:2;color:var(--muted)">
+      <li>Sort by Total Rank (tap the <strong>Rank</strong> heading) — best students at the top</li>
+      <li>Use <span class="b bn">⚙️</span> to hide any columns not needed on paper</li>
+      <li>Switch to <span class="b bp">👁 View Mode</span> so typing boxes disappear</li>
+      <li>Click <span class="b bn">PDF</span> → choose "Save as PDF" → A4 size</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <h3>🔁 Just found a wrong mark?</h3>
+    <p>Switch to Edit Mode, find the student (you can sort by name using the ID column), click the wrong mark, type the correct number, and click elsewhere. Ranks fix themselves instantly and the correction is saved to the cloud. Nothing else is needed.</p>
+  </div>
+
+  <div class="co danger">
+    <span class="ci">🚨</span>
+    <p><strong>The golden rule:</strong> Before any big change — deleting an exam, loading a large file onto existing data, restoring a backup — always click <span class="b ba">Backup</span> first. Five seconds of effort can save hours of re-work.</p>
+  </div>
+
+  <div class="co tip">
+    <span class="ci">💡</span>
+    <p><strong>Share this guide with your team.</strong> Anyone who uses the app should read the Cloud Sync, Backup, and Restore sections. Understanding how sync works prevents accidental data loss and avoids confusion when multiple people are working.</p>
+  </div>
+</div>
+
+</main>
+
+<button id="topBtn" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+
+<script>
+function goTo(id){
+  const el=document.getElementById(id);
+  if(el){el.scrollIntoView({behavior:'smooth',block:'start'});if(window.innerWidth<768)toggleMenu();}
+}
+function toggleMenu(){
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('ovl').classList.toggle('on');
+}
+const topBtn=document.getElementById('topBtn');
+window.addEventListener('scroll',()=>{topBtn.style.display=window.scrollY>280?'flex':'none';});
+const secs=document.querySelectorAll('.sec[id]');
+const links=document.querySelectorAll('.nl');
+const obs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      links.forEach(l=>l.classList.remove('active'));
+      const a=document.querySelector(`.nl[onclick="goTo('${e.target.id}')"]`);
+      if(a)a.classList.add('active');
+    }
+  });
+},{rootMargin:'-25% 0px -65% 0px'});
+secs.forEach(s=>obs.observe(s));
+</script>
+</body>
+</html>
